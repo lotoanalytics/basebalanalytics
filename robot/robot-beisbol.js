@@ -48,7 +48,7 @@
 //  FORZAR=1    -> busca todo sin mirar los horarios (para probar)
 // =====================================================================
 
-try { require('dotenv').config(); } catch (e) { /* dotenv es opcional */ }
+try { require('dotenv').config({ quiet: true }); } catch (e) { /* dotenv es opcional */ }
 
 let puppeteer = require('puppeteer');
 try {
