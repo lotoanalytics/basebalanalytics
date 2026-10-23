@@ -19,7 +19,8 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - **Publicada en Vercel** (23-oct-2026): proyecto **`baseball-analytics`**, aparte del proyecto `lotoanalytics` (misma cuenta de Vercel, despliegue diferente). Enlace: **https://baseball-analytics-lilac.vercel.app**. Está conectado al repo: cada push a `main` se publica solo.
 
 ## Diseño actual (Baseball Analytics)
-- **Estilo vivo, como LotoAnalytics** (desde 22-oct): fondo azul intenso con morado, estrellitas que brillan y pelotas/burbujas de luz que flotan en los bordes (sin imagen, todo con CSS). Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
+- **Fondo (desde 23-oct-2026): SOLO la imagen del estadio** que mandó el dueño (`fondo/estadio.webp` en el repo), fija y cubriendo toda la pantalla. Se recortó para **quitar las personas** de abajo. El dueño pidió que en el fondo no haya nada más: se quitaron las estrellitas, los brillos y las pelotas flotantes. Los textos que van directo sobre la imagen llevan sombra negra para que se lean.
+- Resto del estilo vivo como LotoAnalytics (desde 22-oct): Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
 - **Números como bolas brillantes** (como los números de la lotería): carreras en el marcador y en Resultados. El que gana = bola del color del tema; el que pierde = bola azul.
 - Cabecera: botón ☰ (abre el menú), logo de pelota con barras + "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
 - Aviso amarillo: "Vista de prueba · los juegos y números son de ejemplo".
@@ -83,3 +84,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: creada la base aparte en Supabase (`baseball-analytics`, ref `fehvnwwzdygjsxsjzxlu`) con sus tablas, torneos y equipos.
 - 23-oct-2026: prueba con la imagen propia del dueño como escudo de Águilas (`escudos/aguilas.webp`).
 - 23-oct-2026: Tigres, Leones y Águilas con las imágenes neón del dueño; se borró la prueba anterior de Águilas.
+- 23-oct-2026: el fondo pasa a ser solo la imagen del estadio (sin personas, sin pelotas ni estrellas).
