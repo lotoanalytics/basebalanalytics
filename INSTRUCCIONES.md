@@ -48,7 +48,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
   - En las tarjetas de resultados sale "En 5 entradas: x - y".
   - Ya **no hay datos de ejemplo**: el aviso amarillo de "vista de prueba" se quitó.
 - 4 pestañas arriba (como la app Pelota Invernal que el dueño mostró de modelo):
-  1. **Portada**: "Juego de hoy" EN VIVO (entrada, marcador C/H/E, quién está al bate, bases en diamante, bolas/strikes/outs, al bate, lanzador, última jugada, nota) y "Resultados anteriores" (Final o Pospuesto, marcador C/H/E, ganador, perdedor, salvamento, motivo).
+  1. **Portada**: "Juegos de hoy" con **TODOS los juegos en vivo a la vez**, una tarjeta por juego (`T.vivos`), y el aviso "2 EN VIVO" cuando hay varios. Al tocar una tarjeta se abre el estadio de ese juego (`estadioId`). Lo que trae cada tarjeta EN VIVO (entrada, marcador C/H/E, quién está al bate, bases en diamante, bolas/strikes/outs, al bate, lanzador, última jugada, nota) y "Resultados anteriores" (Final o Pospuesto, marcador C/H/E, ganador, perdedor, salvamento, motivo).
      - **Diamante de bases en 3D acostado** (23-oct, función `diamante3D`): terreno en perspectiva con las 4 almohadillas con grosor. En cada base ocupada hay un **peloterito** (función `peloterito`) con gorra y camiseta del **color del equipo que está al bate** (`color1`/`color2` del equipo) y la almohadilla se pinta de ese color. En home siempre está el bateador con su bate. Datos: `bases:[primera, segunda, tercera]` y `alBate`.
      - **Mini estadio** (23-oct-2026): al tocar la tarjeta del juego en vivo se abre en pantalla completa un estadio que solo se mira, no se juega. Lo que muestra:
        - Arriba, un **tablero** tipo estadio con números de luz: C/H/E de cada equipo, un punto amarillo en el que batea, y las luces B/S/O.
@@ -82,7 +82,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - Datos de la base / en vivo (`*.supabase.co` o `/api/`) → **SIEMPRE de internet, nunca de la caché ni se guardan** (desde el 23-oct, por pedido del dueño).
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v10`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v11`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -171,3 +171,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: la página lee los datos REALES de la base (sin datos de ejemplo), se vuelve una app descargable con logo propio, y el menú tiene "Descargar la app" en vez de "Volver a LotoAnalytics".
 - 23-oct-2026: el juego en vivo nunca sale de la caché (siempre dato real de internet); la tarjeta dice "Dato de las …". Hecho el **robot vigilante** (`robot/vigilar.sh` + `.github/workflows/robot-vigilante.yml`): se dispara una vez y se queda encendido, corriendo el robot cada 5 min hasta la hora indicada (por defecto 00:00 RD; tope 5 h 40 min). Se detiene con "Cancel workflow" en Actions. Primera noche: se descifraron los estados en vivo (2 y 3) y los **8 códigos de base**, que están en `ANALISIS-PN.md`.
 - 23-oct-2026 (noche): el robot vigilante pasa a **modo en vivo**: el Chrome queda abierto y revisa **cada 30 s** (resultados cada ~2 min; si se cae, se vuelve a encender solo). Código `base` descifrado: 1 vacías, 2 1ra, 3 2da, 4 3ra, 5 1ra-2da, 6 1ra-3ra, 7 2da-3ra, 8 llenas (`BASES_CODIGO` en la página y en el robot).
+- 23-oct-2026: la portada muestra todos los juegos en vivo a la vez (había 2: Águilas–Leones y Tigres–Estrellas); las bases se pintan con el código descifrado.
