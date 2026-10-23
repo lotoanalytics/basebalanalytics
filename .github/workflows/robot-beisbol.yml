@@ -18,6 +18,9 @@ on:
         default: "0"
 
 # Nunca dos corridas a la vez: si llega otra, espera a que termine la anterior.
+permissions:
+  contents: write
+
 concurrency:
   group: robot-beisbol
   cancel-in-progress: false
@@ -59,4 +62,21 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SOLO_LEER: ${{ github.event.inputs.solo_leer }}
-        run: node robot/robot-beisbol.js
+        run: |
+          mkdir -p registro
+          node robot/robot-beisbol.js 2>&1 | tee registro/ultima-corrida.txt
+          exit ${PIPESTATUS[0]}
+
+      # En modo prueba, lo que dijo el robot se guarda en la rama "exploracion"
+      # (carpeta registro/) para poder revisarlo. No toca la rama main.
+      - name: Guardar el registro de la prueba
+        if: always() && github.event.inputs.solo_leer == '1'
+        run: |
+          git config user.name "robot-beisbol"
+          git config user.email "robot@users.noreply.github.com"
+          git fetch origin exploracion || true
+          git checkout -B exploracion origin/exploracion 2>/dev/null || git checkout --orphan exploracion
+          git rm -rq --cached . 2>/dev/null || true
+          git add -f registro/
+          git commit -m "Prueba del robot $(date -u +%F_%H%M)" || exit 0
+          git push -f origin exploracion
