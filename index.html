@@ -115,9 +115,9 @@
 
   /* Situación del juego: bases y conteo */
   .situacion{display:flex; align-items:center; gap:18px; margin:10px 0 8px; padding-top:10px; border-top:1px solid var(--fina)}
-  .diamante{width:82px; height:62px; flex:none}
-  .diamante rect{fill:rgba(255,255,255,0.06); stroke:var(--linea-azul); stroke-width:1.5}
-  .diamante rect.on{fill:var(--verde); stroke:var(--verde); filter:drop-shadow(0 0 4px var(--verde))}
+  /* Diamante acostado en 3D con peloteritos del equipo al bate en las bases */
+  .diamante{width:176px; height:122px; flex:none; overflow:visible; margin:-6px 0 -4px -6px}
+  .situacion{gap:14px}
   .conteo{display:grid; gap:5px; font-weight:700; font-size:.85rem}
   .conteo div{display:flex; align-items:center; gap:6px}
   .conteo b{width:14px; color:var(--suave)}
@@ -198,10 +198,22 @@
   .titulo svg{filter:drop-shadow(0 0 5px rgba(var(--ac),0.8))}
   .vivo{font-family:'Exo 2',sans-serif; font-weight:800}
 
-  .tarjeta{background:linear-gradient(160deg, rgba(var(--ac),0.20) 0%, rgba(10,22,80,0.84) 45%, rgba(8,16,60,0.88) 100%);
-    border:1.5px solid rgba(var(--ac),0.6); border-radius:18px;
-    box-shadow:0 0 16px rgba(var(--ac),0.30), inset 0 0 22px rgba(var(--ac),0.08)}
-  .tarjeta.en-vivo{border-color:rgb(var(--ac)); box-shadow:0 0 26px rgba(var(--ac),0.55), inset 0 0 26px rgba(var(--ac),0.12)}
+  /* Tarjetas de CRISTAL del color escogido (verde cristal, rojo cristal...) */
+  .tarjeta{
+    background:
+      linear-gradient(155deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 38%),
+      linear-gradient(160deg, rgba(var(--ac),0.42) 0%, rgba(var(--ac),0.20) 55%, rgba(var(--ac),0.30) 100%),
+      rgba(6,12,36,0.42);
+    -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%);
+    border:1.5px solid rgba(var(--ac),0.8); border-radius:18px;
+    box-shadow:0 0 16px rgba(var(--ac),0.35), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 22px rgba(var(--ac),0.12);
+    text-shadow:0 1px 2px rgba(0,0,0,0.65)}
+  .tarjeta.en-vivo{border-color:rgb(var(--ac)); box-shadow:0 0 26px rgba(var(--ac),0.6), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 0 26px rgba(var(--ac),0.16)}
+  .tarjeta .bola{text-shadow:none}
+  .tarjeta .estado b{color:#fff; text-shadow:0 0 8px rgb(var(--ac)), 0 1px 2px rgba(0,0,0,0.8)}
+  .tarjeta .estado b.pp{color:var(--amarillo)}
+  .tarjeta .estado span, .tarjeta .marcador th, .tarjeta .medio small, .tarjeta .tabla .pos{color:#e6ecff}
+  .tarjeta .tabla th{color:#fff}
   .estado b{text-shadow:0 0 8px rgba(var(--ac),0.7)}
   .fecha{color:#dfe6ff}
   .fecha::after{background:linear-gradient(90deg, rgba(var(--ac),0.6), transparent)}
@@ -398,7 +410,7 @@
       juegoHoy: {
         entrada:'Baja 7ma', alBate:'c',
         v:{ eq:'TE', c:2, h:6, e:2 }, casa:{ eq:'GC', c:5, h:8, e:1 },
-        bolas:0, strikes:0, outs:2, bases:[false,false,false],
+        bolas:1, strikes:2, outs:2, bases:[true,false,true],
         bateador:'Jake Holton', lanzador:'Phillips Valdez',
         ultima:'Noelvi Marte · Out: elevado al jardinero derecho', nota:'Cambio de lanzador',
       },
@@ -497,23 +509,63 @@
     return `<div class="juego">${eq(v)}<div class="medio">${medio}</div>${eq(c, true, true)}</div>`;
   }
 
+
+  // ===== Diamante 3D acostado: bases con peloteritos del color del equipo al bate =====
+  // Peloterito parado con los pies en (x,y). bate=true: el bateador en home con su bate.
+  function peloterito(x, y, c1, c2, bate){
+    const bat = bate ? `<path d="M3.6 -15 L10.5 -30" stroke="#d9a35b" stroke-width="2.4" stroke-linecap="round"/><path d="M3.6 -15 L5.2 -18" stroke="#7a4a1e" stroke-width="2.6" stroke-linecap="round"/>` : '';
+    return `<g transform="translate(${x} ${y})">
+      <ellipse cx="0" cy="0" rx="6.5" ry="2.2" fill="rgba(0,0,0,0.45)"/>
+      <rect x="-3.9" y="-9.5" width="3.3" height="9" rx="1.4" fill="#f2f5fb"/>
+      <rect x="0.6" y="-9.5" width="3.3" height="9" rx="1.4" fill="#e3e8f2"/>
+      <rect x="-4.4" y="-1.6" width="4" height="2" rx="1" fill="#1b1f2b"/><rect x="0.4" y="-1.6" width="4" height="2" rx="1" fill="#1b1f2b"/>
+      <rect x="-4.6" y="-11" width="9.2" height="2" rx="0.8" fill="${c2}"/>
+      <path d="M-5 -9.5 L-5.6 -17.5 Q-5.6 -20.3 -2.8 -20.6 L2.8 -20.6 Q5.6 -20.3 5.6 -17.5 L5 -9.5 Z" fill="${c1}"/>
+      <path d="M-0.2 -20.4 L-0.2 -10" stroke="rgba(255,255,255,0.55)" stroke-width="0.8"/>
+      <rect x="-8" y="-19.6" width="2.8" height="7.6" rx="1.4" fill="${c1}"/><rect x="5.2" y="-19.6" width="2.8" height="7.6" rx="1.4" fill="${c1}"/>
+      <circle cx="-6.6" cy="-11.6" r="1.4" fill="#e6b48a"/><circle cx="6.6" cy="-11.6" r="1.4" fill="#e6b48a"/>
+      ${bat}
+      <circle cx="0" cy="-24.4" r="3.9" fill="#e6b48a"/>
+      <path d="M-4 -25 A4 4 0 0 1 4 -25 Z" fill="${c1}"/>
+      <path d="M2.4 -25.2 L7 -24.6 L6.6 -23.6 L2.2 -24 Z" fill="${c2}"/>
+      <circle cx="1.6" cy="-24" r="0.6" fill="#1b1f2b"/>
+    </g>`;
+  }
+  function diamante3D(bases, alBate){
+    const t = EQUIPOS[alBate] || {}, c1 = t.c1 || 'rgb(var(--ac))', c2 = t.c2 || '#111';
+    const P = { h:[75,92], p:[132,60], s:[75,30], t:[18,60] };   // home, primera, segunda, tercera
+    const almohada = ([x,y], ocupada) => `
+      <path d="M${x-8} ${y} L${x} ${y+4.4} L${x+8} ${y} L${x+8} ${y+2.4} L${x} ${y+6.8} L${x-8} ${y+2.4} Z" fill="rgba(0,0,0,0.45)"/>
+      <path d="M${x} ${y-4.4} L${x+8} ${y} L${x} ${y+4.4} L${x-8} ${y} Z" fill="${ocupada ? c1 : '#f4f6fb'}" stroke="${ocupada ? '#fff' : 'rgba(255,255,255,0.7)'}" stroke-width="${ocupada ? 1 : 0.6}" ${ocupada ? `style="filter:drop-shadow(0 0 4px ${c1})"` : ''}/>`;
+    const [b1, b2, b3] = bases;
+    return `<svg class="diamante" viewBox="0 0 150 104" aria-label="bases: ${[b1&&'primera',b2&&'segunda',b3&&'tercera'].filter(Boolean).join(', ') || 'vacías'}">
+      <path d="M8 64 Q75 -8 142 64 L75 98 Z" fill="rgba(var(--ac),0.10)"/>
+      <path d="M${P.h} L${P.p} L${P.s} L${P.t} Z" fill="rgba(var(--ac),0.20)" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+      <path d="M${P.h[0]} ${P.h[1]+3} L${P.p[0]} ${P.p[1]+3} M${P.h[0]} ${P.h[1]+3} L${P.t[0]} ${P.t[1]+3}" stroke="rgba(0,0,0,0.35)" stroke-width="1.2"/>
+      <ellipse cx="75" cy="61" rx="7" ry="3.4" fill="rgba(255,255,255,0.22)"/><ellipse cx="75" cy="60.4" rx="2.6" ry="1.1" fill="#fff"/>
+      ${almohada(P.s, b2)}
+      ${almohada(P.t, b3)}${almohada(P.p, b1)}
+      <path d="M69 92 L75 89.4 L81 92 L81 93.6 L75 96.6 L69 93.6 Z" fill="#f4f6fb" stroke="rgba(255,255,255,0.7)" stroke-width="0.6"/>
+      ${b2 ? peloterito(P.s[0], P.s[1], c1, c2) : ''}
+      ${b3 ? peloterito(P.t[0], P.t[1], c1, c2) : ''}
+      ${b1 ? peloterito(P.p[0], P.p[1], c1, c2) : ''}
+      ${peloterito(P.h[0]-9, P.h[1]+1, c1, c2, true)}
+    </svg>`;
+  }
+
   function pintarPortada(){
     const j = T.juegoHoy;
     $('vivo').style.display = j ? '' : 'none';
     if(!j){
       $('juego-hoy').innerHTML = vacio('No hay juego en vivo', T.calendario.length ? 'Mira los próximos juegos en Calendario.' : 'Este torneo ya terminó. Mira los resultados abajo.');
     } else {
-      const [b1,b2,b3] = j.bases;
+      const alBate = j.alBate === 'v' ? j.v.eq : j.casa.eq;
       $('juego-hoy').innerHTML = `
         <div class="tarjeta en-vivo">
           <div class="estado"><b>${j.entrada}</b><span>Hoy</span></div>
           ${marcador(j, j.alBate)}
           <div class="situacion">
-            <svg class="diamante" viewBox="0 0 82 62" aria-label="bases">
-              <rect class="${b2?'on':''}" x="31" y="4" width="20" height="20" rx="2" transform="rotate(45 41 14)"/>
-              <rect class="${b3?'on':''}" x="7" y="28" width="20" height="20" rx="2" transform="rotate(45 17 38)"/>
-              <rect class="${b1?'on':''}" x="55" y="28" width="20" height="20" rx="2" transform="rotate(45 65 38)"/>
-            </svg>
+            ${diamante3D(j.bases, alBate)}
             <div class="conteo">
               <div><b>B</b>${puntos(j.bolas,4,'b')}</div>
               <div><b>S</b>${puntos(j.strikes,3,'s')}</div>

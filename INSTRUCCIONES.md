@@ -20,13 +20,15 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 
 ## Diseño actual (Baseball Analytics)
 - **Fondo (desde 23-oct-2026): SOLO la imagen del estadio** que mandó el dueño (`fondo/estadio.webp` en el repo), fija y cubriendo toda la pantalla. Se recortó para **quitar las personas** de abajo. El dueño pidió que en el fondo no haya nada más: se quitaron las estrellitas, los brillos y las pelotas flotantes. Los textos que van directo sobre la imagen llevan sombra negra para que se lean.
-- **El fondo no se mueve al deslizar** (23-oct): `.fondo` tiene alto fijo `100lvh` (el alto grande del teléfono, así no "brinca" cuando la barra del navegador sale o se esconde) y va en su propia capa (`translate3d`, `will-change`). Se quitaron los desenfoques (`backdrop-filter`) de tarjetas y pestañas porque hacían pesado el desplazamiento; en cambio las tarjetas son un poco más sólidas. Solo se mueven las tarjetas.
+- **El fondo no se mueve al deslizar** (23-oct): `.fondo` tiene alto fijo `100lvh` (el alto grande del teléfono, así no "brinca" cuando la barra del navegador sale o se esconde) y va en su propia capa (`translate3d`, `will-change`). Solo se mueven las tarjetas.
+- **Tarjetas de cristal del color escogido** (23-oct): fondo del color del tema transparente con desenfoque (`backdrop-filter: blur(14px)`), reflejo blanco arriba y borde brillante: verde cristal, rojo cristal, etc. Textos con sombrita para que se lean.
 - Resto del estilo vivo como LotoAnalytics (desde 22-oct): Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
 - **Números como bolas brillantes** (como los números de la lotería): carreras en el marcador y en Resultados. El que gana = bola del color del tema; el que pierde = bola azul.
 - Cabecera: botón ☰ (abre el menú), logo de pelota con barras + "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
 - Aviso amarillo: "Vista de prueba · los juegos y números son de ejemplo".
 - 4 pestañas arriba (como la app Pelota Invernal que el dueño mostró de modelo):
   1. **Portada**: "Juego de hoy" EN VIVO (entrada, marcador C/H/E, quién está al bate, bases en diamante, bolas/strikes/outs, al bate, lanzador, última jugada, nota) y "Resultados anteriores" (Final o Pospuesto, marcador C/H/E, ganador, perdedor, salvamento, motivo).
+     - **Diamante de bases en 3D acostado** (23-oct, función `diamante3D`): terreno en perspectiva con las 4 almohadillas con grosor. En cada base ocupada hay un **peloterito** (función `peloterito`) con gorra y camiseta del **color del equipo que está al bate** (`color1`/`color2` del equipo) y la almohadilla se pinta de ese color. En home siempre está el bateador con su bate. Datos: `bases:[primera, segunda, tercera]` y `alBate`.
   2. **Posiciones**: Equipo, G, P, DIF, PCT. DIF y PCT se calculan solos; el líder resaltado.
   3. **Calendario**: agrupado por fecha, visitante a la izquierda, casa a la derecha, hora.
   4. **Resultados**: agrupado por fecha, visitante – carreras – casa; el que gana resaltado con el color del tema; PP = pospuesto.
@@ -44,7 +46,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v2`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v3`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -98,3 +100,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: el fondo pasa a ser solo la imagen del estadio (sin personas, sin pelotas ni estrellas).
 - 23-oct-2026: caché con service worker (`sw.js`): todo desde caché, el en vivo siempre de internet primero.
 - 23-oct-2026: fondo quieto y desplazamiento fluido (sin brincos, sin desenfoques).
+- 23-oct-2026: tarjetas de cristal del color del tema y diamante 3D con peloteritos del color del equipo al bate.
