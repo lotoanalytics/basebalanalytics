@@ -29,8 +29,10 @@ async function explorar(browser, nombre, ruta) {
     if (!['xhr', 'fetch'].includes(tipo) && !/json/.test(ct)) return;
     let texto = '';
     try { texto = await r.text(); } catch (e) {}
+    // De pelotainvernal se guarda la respuesta COMPLETA; de lo demás (anuncios) solo un pedacito
+    const propio = /pelotainvernal\.com|kiskoo\.com/.test(r.url());
     datos.push({ metodo: r.request().method(), url: r.url(), estado: r.status(), tipo, contentType: ct,
-                 cuerpoPedido: r.request().postData() || null, largo: texto.length, muestra: texto.slice(0, 4000) });
+                 cuerpoPedido: r.request().postData() || null, largo: texto.length, muestra: texto.slice(0, propio ? 400000 : 300) });
   });
   // WebSockets (marcadores en vivo suelen llegar así)
   const cdp = await page.target().createCDPSession();
@@ -47,8 +49,16 @@ async function explorar(browser, nombre, ruta) {
   await new Promise((r) => setTimeout(r, 8000));
   const texto = await page.evaluate(() => document.body.innerText).catch(() => '');
   const scripts = await page.evaluate(() => [...document.scripts].map((s) => s.src).filter(Boolean)).catch(() => []);
+  // Enlaces a juegos y el HTML de la página (para ver cómo pinta el juego en vivo)
+  const enlaces = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href]')].map((a) => a.href))]).catch(() => []);
+  fs.writeFileSync(`${SALIDA}/${nombre}.html`, await page.content().catch(() => ''));
+  // Código de los programas propios del sitio (el del canal en vivo sobre todo)
+  for (const src of scripts.filter((u) => /kiskoo\.com|pelotainvernal\.com/.test(u))) {
+    const codigo = await page.evaluate((u) => fetch(u).then((r) => r.text()).catch((e) => 'ERROR ' + e), src).catch(() => '');
+    fs.writeFileSync(`${SALIDA}/codigo-${src.split('/').pop().split('?')[0]}`, codigo);
+  }
 
-  fs.writeFileSync(`${SALIDA}/${nombre}.json`, JSON.stringify({ url: BASE + ruta, scripts, datos, sockets, textoVisible: texto.slice(0, 6000) }, null, 2));
+  fs.writeFileSync(`${SALIDA}/${nombre}.json`, JSON.stringify({ url: BASE + ruta, scripts, enlaces, datos, sockets, textoVisible: texto.slice(0, 6000) }, null, 2));
   console.log('Scripts: ' + scripts.length + ' · Datos ocultos: ' + datos.length + ' · WebSockets: ' + sockets.length);
   datos.forEach((d) => console.log('  ' + d.metodo + ' ' + d.estado + ' ' + d.url + ' (' + d.largo + ' letras)'));
   sockets.forEach((s) => console.log('  WS ' + s.url + ' (' + s.mensajes.length + ' mensajes)'));
