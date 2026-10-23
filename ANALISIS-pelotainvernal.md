@@ -1,6 +1,6 @@
 # Análisis de pelotainvernal.com (para el robot de Baseball Analytics)
 
-Revisado el 23-oct-2026. **Léelo antes de programar el robot.**
+Revisado el 23-oct-2026 (con el robot explorador `robot/explorar-pelotainvernal.js`). **Léelo antes de programar el robot.**
 
 ## 1. Cómo está armado el sitio
 
@@ -17,16 +17,53 @@ Hay tres torneos y cada uno tiene la misma estructura:
 - El sitio dice que es **independiente** y que no es oficial de LIDOM ni de la Serie del Caribe. El pie de página dice "© Todos los derechos reservados" y que apoyan la DMCA.
 - Otras partes: un chat, la app (Android `com.pelota`, iPhone `id723302709`) y enlaces a emisoras.
 
-### Qué se puede leer directo y qué no
+### De dónde salen los datos (descubierto el 23-oct-2026 con el robot explorador)
 
-| Página | ¿Los datos vienen en el HTML? |
+El sitio funciona sobre la plataforma **Kiskoo / Conéctate**. Es la misma empresa de conectate.com.do, que ya usa el robot de LotoAnalytics. Sus programas vienen de `cdn-conectate.kiskoo.com`.
+
+| Qué | Cómo lo pide la página |
 |---|---|
-| **Posiciones** | ✅ **Sí**: la tabla viene completa en el HTML. |
-| **Calendario** | ❌ **No**: la página llega vacía ("No hay resultados") y los juegos se cargan después con JavaScript. |
-| **Resultados** | ❌ **No**: igual que el Calendario. |
-| **Portada: juego en vivo y resultados anteriores** | ❌ **No**: se carga con JavaScript. |
+| **Posiciones** | Vienen ya escritas en el HTML de `/liga/<liga>/tabla-de-posiciones`. |
+| **Calendario** | `POST https://pelotainvernal.com/liga/<liga>/calendario` con el cuerpo `page=1` → devuelve **JSON** con una lista de juegos. |
+| **Resultados** | `POST https://pelotainvernal.com/liga/<liga>/resultados` con el cuerpo `page=1` → devuelve **JSON**. `page=2`, `page=3`… traen los juegos más viejos. |
+| **Juego en vivo** | Un **canal en vivo (WebSocket)** en `wss://s.pelotainvernal.com/`. El programa `game-socket.js` solo se conecta, manda un "sigo aquí" cada 10 segundos con la hora, y se reconecta solo si se cae. No pide un juego específico: el servidor empuja los cambios. **Falta ver qué mensajes manda durante un juego** (a las 3:00 p. m. no había juego). |
+| **Detalle de un juego** | `https://pelotainvernal.com/<id del juego>`, por ejemplo `/2198`. Trae los dos lineups, el cara a cara de la temporada (G P C H E) y las estadísticas generales de cada equipo: **CA** = carreras anotadas por juego, **CP** = carreras permitidas por juego, **H** = hits por juego, **E** = errores por juego. |
+| Otro | `idle-reload.js`: si la pestaña estuvo escondida más de 1 minuto, la página se recarga sola al volver. |
 
-Para saber **de dónde** salen esos datos (la dirección interna que usa la página), hay que abrir el sitio en un navegador y mirar las peticiones de red. Eso **está pendiente**: no se pudo hacer porque el chat no estaba conectado a la computadora del dueño.
+### Cómo viene cada juego (el JSON)
+
+Cada juego trae estos datos:
+
+| Campo | Qué es | Ejemplo |
+|---|---|---|
+| `id` | Número del juego (sirve para no duplicar y para el enlace `/id`) | `2198` |
+| `season_id` | Temporada | `23` = LIDOM 2026-27 |
+| `date` | Fecha y hora **de República Dominicana** | `2026-10-22 19:00:00` |
+| `status` | Estado del juego | **1 = programado · 6 = final · 7 = pospuesto**. Los de "en vivo" faltan por ver. |
+| `comment` | Nota | `Por lluvias` (cuando se pospone) |
+| `roundText` | Entrada en texto | `Alta 1ra`, `Baja 10ma` |
+| `currentInningNum` | Número de la entrada | `10` |
+| `part` | Mitad de la entrada | **1 = Alta** (batea el visitante) · **2 = Baja** (batea el de casa) |
+| `battingTeam` | Quién batea | `awayTeam` (visitante) / `homeTeam` (casa) |
+| `balls` · `strikes` · `outs` | Conteo | `3`, `1`, `0` |
+| `base` | Bases ocupadas (en código) | Casi siempre `1`; una vez `3`. **Falta descifrar** cómo se lee con un juego en vivo. |
+| `lastPlayByPlay` | Última jugada | `Kelvin Gutierrez se embasa por Error del Campo Corto` |
+| `atBat` | Bateador | (vacío cuando el juego no está en vivo) |
+| `winningPitcher` · `losingPitcher` · `savingPitcher` | Ganador, perdedor y salvamento | `Yerry Rodriguez` |
+| `gameAlert` | Aviso | (ej. "Cambio de lanzador") |
+| `awayTeam` / `homeTeam` | Visitante / casa | Ver abajo |
+| `moneyline_*`, `handicap_*`, `over_under` | **Datos de apuestas**: vienen vacíos y **NO se usan** (regla de Google Play / AdSense) | `null` |
+| `adImage`, `adLink`, `banner` | Publicidad de ellos | — no se usa |
+
+Cada equipo (`awayTeam` / `homeTeam`) trae:
+- `id` del equipo: Tigres = 1, Aguilas = 3, Leones = 4, Gigantes = 5, Toros = 6, Estrellas = 7.
+- `name` y `abbreviation` (TL, AC, LE, GC, TE, EO).
+- `color`: el color del equipo en código, sin el `#`. Por ejemplo `233b77` Tigres, `fdc915` Águilas, `db2319` Leones, `831d35` Gigantes, `ef7722` Toros, `159e46` Estrellas.
+- `logo`: el logo oficial. **No se usa**: es marca registrada.
+- `runs`, `hits` y `errors`: C, H y E.
+- **`runs_half`**: las carreras en las primeras 5 entradas (la mitad del juego).
+  - Es el **"H: 1 - 0"** que sale en las tarjetas de la portada. ✔ Confirmado: Tigres–Toros 1-0; Gigantes–Leones 5-8; Toros–Gigantes 2-0, y en este último coincide con las entradas que trae MLB.
+- `pitcher` (lanzador abridor o actual), `era`, `debut` y `record` (récord del lanzador, ej. `0-0`).
 
 ## 2. Tabla de posiciones: qué significa cada columna
 
@@ -60,9 +97,9 @@ La tabla real de LIDOM del 23-oct-2026:
 - El nombre del sitio es "Aguilas", sin tilde.
 - MXV es el segundo equipo de México ("México Verde").
 
-## 3. Calendario y Resultados
+## 3. Calendario y Resultados (cómo se ven)
 
-Esto se sabe por las capturas que mandó el dueño; el HTML llega vacío.
+La página pinta en pantalla el JSON de arriba:
 
 - **Calendario:** columnas Fecha · Visitante · Casa · Hora, en hora de República Dominicana, con el formato `7:00 p. m.`
 - **Resultados:** columnas Fecha · Visitante · Resultado · Casa.
@@ -90,7 +127,7 @@ Esto también sale de las capturas del dueño.
 - Cada tarjeta trae el estado (**Final** o **Pospuesto**), la fecha y hora, y el marcador C/H/E.
 - Si terminó, trae **Ganador** (lanzador que gana), **Perdedor** (lanzador que pierde) y **Salvamento** (cerrador, cuando lo hay).
 - Si se pospuso, trae el motivo, por ejemplo "Por lluvias".
-- **"H: 1 - 0"** aparece en las tarjetas y **no está confirmado** qué es. Lo más probable es que sean los **jonrones** (visitante - casa). Hay que verificarlo con un juego real antes de guardarlo.
+- **"H: 1 - 0"** = carreras de cada equipo en las primeras 5 entradas (campo `runs_half`). ✔ Confirmado.
 
 ## 5. Fuente encontrada: la API pública de estadísticas de MLB
 
@@ -116,18 +153,31 @@ MLB publica en JSON los datos de las ligas invernales, **LIDOM incluida**. Lo co
 
 ## 6. Plan sugerido para el robot (pendiente de aprobar)
 
-1. **Fuente principal:** la API de MLB para el calendario, los resultados y el juego en vivo, filtrando la liga 131. Fuente de respaldo y para comparar posiciones: pelotainvernal.com.
-2. **Cada día:** traer el calendario de los próximos días y guardarlo en `juegos` con `fuente = 'mlb'` y `fuente_id = gamePk`, así no se duplica.
-3. **Durante los juegos** (unos 6:00 p. m. – 1:00 a. m. hora RD): cada 30 a 60 segundos, leer el `linescore` de los juegos en vivo y actualizar `juegos` (C/H/E) y `juego_en_vivo` (entrada, conteo, bases, bateador, lanzador).
-4. **Al terminar:** marcar el juego `final` y guardar ganador, perdedor y salvamento (salen del endpoint `boxscore` o `feed/live`; falta revisarlo).
-5. **Avisos** (si se usan): uno por juego y tipo, usando `avisos_enviados`.
-6. **La página** lee de Supabase. El juego en vivo siempre va primero a internet (ya está así en `sw.js`).
+1. **Fuente:** pelotainvernal.com, con los mismos datos que usa su página:
+   - Calendario y resultados: `POST /liga/<liga>/calendario` y `POST /liga/<liga>/resultados` con `page=1`, que dan JSON.
+   - Posiciones: del HTML de `tabla-de-posiciones`, o calculadas con los juegos.
+   - En vivo: el canal `wss://s.pelotainvernal.com/`.
+   - **Respaldo:** la API de MLB (liga 131).
+2. **Ligas:** `dominicana-lidom`, `serie-del-caribe` y `clasico-mundial-beisbol`.
+3. **Guardar en Supabase:**
+   - `juegos` con `fuente = 'pelotainvernal'` y `fuente_id = id`, así no se duplica.
+   - Para pasar `status` a nuestro estado: 1 → `programado`, 6 → `final`, 7 → `pospuesto`, y los de en vivo → `en_vivo`.
+   - Equipos por `abbreviation`.
+   - `juego_en_vivo` con `roundText`, `battingTeam`, `balls`/`strikes`/`outs`, las bases, `atBat`, `pitcher` y `lastPlayByPlay`.
+   - Ganador, perdedor y salvamento al terminar.
+4. **Cuándo corre:** igual que LotoAnalytics: GitHub Actions con `workflow_dispatch`, disparado desde cron-job.org.
+   - Cada día, una vez, el calendario.
+   - En horario de juegos (6:00 p. m. – 1:00 a. m. RD), cada pocos minutos, o escuchando el canal en vivo.
+5. **Nunca** se guardan los datos de apuestas ni los logos oficiales.
+6. **Avisos** (si se usan): uno por juego y tipo, con `avisos_enviados`.
 
 ## 7. Pendientes
 
-- [ ] Revisar el documento "revisar/analizar/conectate" del repo de LotoAnalytics. **Falta el acceso.**
-- [ ] Ver en un navegador de dónde carga pelotainvernal el calendario, los resultados y el juego en vivo.
-- [ ] Confirmar qué es "H: 1 - 0" en las tarjetas.
+- [x] Revisar el documento de LotoAnalytics: `robot/probar-conectate.js` (solo lectura). La copia es `robot/explorar-pelotainvernal.js`.
+- [x] Ver de dónde carga pelotainvernal el calendario y los resultados (JSON por POST).
+- [x] Confirmar qué es "H: 1 - 0": las carreras en las primeras 5 entradas (`runs_half`).
+- [ ] **Escuchar el canal en vivo durante un juego**, para ver los estados en vivo y cómo viene `base`. Hay que correr el explorador mientras hay juego, por ejemplo a las 8:00 p. m.
+- [ ] Ver qué trae `page=2` en resultados (los juegos viejos).
 - [ ] Sacar los IDs de MLB de los 6 equipos de LIDOM.
 - [ ] Revisar el `boxscore` / `feed/live` de MLB para ganador, perdedor, salvamento y la última jugada.
 - [ ] El dueño decide sobre el permiso de uso de la fuente.
