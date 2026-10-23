@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Página en prueba: no aparece en Google ni está enlazada desde la app todavía -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b1f8a">
+<title>Baseball Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Exo+2:ital,wght@0,500;0,600;0,700;0,800;1,800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Colores del tema (cambian con el menú ☰). --ac = acento, --ac2 = segundo color, en números R,G,B */
+    --ac:34,255,143; --ac2:56,166,255;
+    --verde:rgb(var(--ac)); --verde2:#0dd67a; --azul:rgb(var(--ac2));
+    --claro:#b8ffd9; --sobre:#03170c;
+    --panel:rgba(6,16,38,0.82); --panel2:rgba(10,24,52,0.88);
+    --linea:rgba(var(--ac),0.28); --linea-azul:rgba(var(--ac2),0.28); --fina:rgba(var(--ac2),0.14);
+    --texto:#eaf2ff; --suave:#9fb3d9; --rojo:#ff4d5e; --amarillo:#ffd60a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{min-height:100vh; color:var(--texto); background:#04101f; font-family:'Exo 2', system-ui, sans-serif; -webkit-tap-highlight-color:transparent}
+  /* Fondo: azul oscuro con brillos verde y azul */
+  .fondo{position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(60% 40% at 15% 0%, rgba(var(--ac),0.12), transparent 70%),
+      radial-gradient(60% 45% at 100% 100%, rgba(var(--ac2),0.16), transparent 70%),
+      #04101f;}
+  .app{position:relative; z-index:1; max-width:520px; margin:0 auto; padding:14px 16px calc(28px + env(safe-area-inset-bottom))}
+
+  /* Cabecera */
+  .cabecera{display:flex; align-items:center; gap:12px; padding:6px 2px 10px}
+  .btn-ic{width:42px; height:42px; border-radius:12px; border:1px solid var(--linea); background:var(--panel); color:var(--texto);
+    display:flex; align-items:center; justify-content:center; flex:none; text-decoration:none}
+  .btn-ic svg{width:22px; height:22px}
+  .marca{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; min-width:0}
+  .marca svg{color:var(--verde); width:30px; height:30px; flex:none; filter:drop-shadow(0 0 6px rgba(var(--ac),0.7))}
+  .marca b{font-style:italic; font-weight:800; font-size:1.35rem; letter-spacing:-0.01em; white-space:nowrap;
+    background:linear-gradient(90deg, var(--verde) 0%, var(--claro) 55%, #fff 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lema{text-align:center; font-size:.68rem; letter-spacing:.32em; color:var(--suave); margin:-4px 0 12px; text-transform:uppercase}
+  .lema i{color:var(--verde); font-style:normal}
+  .aviso-prueba{font-size:.72rem; color:var(--amarillo); text-align:center; margin:0 0 12px; opacity:.9}
+
+  /* Pestañas */
+  .tabs{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; background:var(--panel); border:1px solid var(--linea-azul);
+    border-radius:16px; padding:6px; margin-bottom:16px; position:sticky; top:8px; z-index:4; backdrop-filter:blur(6px)}
+  .tab{border:0; background:transparent; color:var(--suave); font:600 .78rem 'Exo 2', system-ui, sans-serif; padding:10px 2px; border-radius:12px; cursor:pointer}
+  .tab.activo{background:linear-gradient(180deg, var(--verde), var(--verde2)); color:var(--sobre); box-shadow:0 0 16px rgba(var(--ac),0.55)}
+  button.btn-ic{cursor:pointer; font:inherit}
+
+  /* Menú lateral ☰ */
+  .velo{position:fixed; inset:0; z-index:20; background:rgba(0,4,12,0.6); opacity:0; pointer-events:none; transition:opacity .25s}
+  .menu{position:fixed; top:0; bottom:0; left:0; z-index:21; width:min(320px, 86vw); background:rgba(5,13,30,0.97);
+    border-right:1px solid var(--linea); box-shadow:0 0 30px rgba(var(--ac),0.18); transform:translateX(-105%); transition:transform .28s ease;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom)); overflow-y:auto}
+  body.menu-abierto .velo{opacity:1; pointer-events:auto}
+  body.menu-abierto .menu{transform:none}
+  .menu-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
+  .menu-cab b{font-style:italic; font-weight:800; font-size:1.1rem; color:var(--verde)}
+  .menu h3{font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:var(--suave); margin:0 2px 10px; font-weight:700}
+  .temas{display:grid; gap:8px; margin-bottom:20px}
+  .tema{display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:14px; cursor:pointer;
+    border:1px solid rgba(255,255,255,0.08); background:var(--panel2); color:var(--texto); font:600 .92rem 'Exo 2', system-ui, sans-serif; text-align:left}
+  .tema .muestra{width:30px; height:30px; border-radius:50%; flex:none; border:2px solid rgba(255,255,255,0.85)}
+  .tema small{display:block; color:var(--suave); font-size:.72rem; font-weight:500}
+  .tema .check{margin-left:auto; width:20px; height:20px; color:var(--verde); opacity:0}
+  .tema.activo{border-color:var(--verde); box-shadow:0 0 14px rgba(var(--ac),0.35)}
+  .tema.activo .check{opacity:1}
+  .menu-link{display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; border:1px solid var(--linea-azul); background:var(--panel);
+    color:var(--texto); text-decoration:none; font-weight:600; font-size:.92rem}
+  .menu-link svg{width:20px; height:20px; color:var(--verde)}
+
+  .torneo .ico{width:30px; height:30px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:rgba(var(--ac),0.12); color:var(--verde)}
+  .torneo .ico svg{width:20px; height:20px}
+  .escudo.bandera{color:transparent; text-shadow:none}
+  .vacio{text-align:center; color:var(--suave); font-size:.88rem; padding:18px 10px; line-height:1.5}
+  .vacio b{display:block; color:var(--texto); font-size:.95rem; margin-bottom:4px}
+
+  .vista{display:none}
+  .vista.activa{display:block}
+
+  .titulo{display:flex; align-items:center; gap:8px; margin:4px 2px 10px; font-weight:700; font-size:.95rem; letter-spacing:.04em; text-transform:uppercase}
+  .titulo svg{width:18px; height:18px; color:var(--verde)}
+  .vivo{margin-left:auto; display:flex; align-items:center; gap:6px; font-size:.72rem; color:var(--rojo); letter-spacing:.08em}
+  .vivo::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--rojo); box-shadow:0 0 8px var(--rojo); animation:late 1.2s infinite}
+  @keyframes late{50%{opacity:.25}}
+
+  .tarjeta{background:var(--panel2); border:1px solid var(--linea-azul); border-radius:16px; padding:12px 14px; margin-bottom:12px;
+    box-shadow:0 0 18px rgba(var(--ac2),0.10)}
+  .tarjeta.en-vivo{border-color:var(--linea); box-shadow:0 0 22px rgba(var(--ac),0.15)}
+
+  /* Escudos: círculos con iniciales y colores propios (no logos oficiales) */
+  .escudo{width:32px; height:32px; border-radius:50%; flex:none; display:inline-flex; align-items:center; justify-content:center;
+    font:800 .62rem 'Exo 2', system-ui, sans-serif; letter-spacing:-0.03em; color:#fff; border:2px solid rgba(255,255,255,0.85); box-shadow:0 0 10px rgba(0,0,0,0.4)}
+  .eq{display:flex; align-items:center; gap:8px; min-width:0}
+  .eq span:not(.escudo){overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  /* Marcador C H E */
+  .estado{display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--suave); margin-bottom:6px}
+  .estado b{color:var(--verde); font-weight:700; letter-spacing:.04em}
+  .estado b.pp{color:var(--amarillo)}
+  .marcador{width:100%; border-collapse:collapse}
+  .marcador th{font-weight:600; font-size:.78rem; color:var(--suave); text-align:center; padding:4px 0; width:44px}
+  .marcador th:first-child{text-align:left; width:auto}
+  .marcador td{padding:7px 0; border-top:1px solid var(--fina); text-align:center; font-weight:700; font-size:1.05rem}
+  .marcador td:first-child{text-align:left; font-weight:600; font-size:.95rem}
+  .marcador td.c{color:var(--verde); font-family:'Orbitron', 'Exo 2', sans-serif; font-weight:900}
+  .marcador tr.pierde td.c{color:var(--texto)}
+  .al-bate{width:14px; height:14px; color:var(--verde); margin-left:2px; flex:none}
+
+  /* Situación del juego: bases y conteo */
+  .situacion{display:flex; align-items:center; gap:18px; margin:10px 0 8px; padding-top:10px; border-top:1px solid var(--fina)}
+  .diamante{width:82px; height:62px; flex:none}
+  .diamante rect{fill:rgba(255,255,255,0.06); stroke:var(--linea-azul); stroke-width:1.5}
+  .diamante rect.on{fill:var(--verde); stroke:var(--verde); filter:drop-shadow(0 0 4px var(--verde))}
+  .conteo{display:grid; gap:5px; font-weight:700; font-size:.85rem}
+  .conteo div{display:flex; align-items:center; gap:6px}
+  .conteo b{width:14px; color:var(--suave)}
+  .punto{width:12px; height:12px; border-radius:50%; border:1.5px solid var(--linea-azul)}
+  .punto.b{background:var(--verde); border-color:var(--verde)}
+  .punto.s{background:var(--amarillo); border-color:var(--amarillo)}
+  .punto.o{background:var(--rojo); border-color:var(--rojo); box-shadow:0 0 6px var(--rojo)}
+  .detalle{font-size:.85rem; line-height:1.55; color:#cfe2ff}
+  .detalle b{color:var(--texto)}
+  .detalle .nota-juego{display:inline-block; margin-top:6px; color:var(--amarillo); font-size:.8rem}
+
+  /* Tablas: posiciones, calendario, resultados */
+  .tabla{width:100%; border-collapse:collapse; font-size:.88rem}
+  .tabla th{font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--verde); font-weight:700; padding:8px 4px; text-align:center; border-bottom:1px solid var(--linea)}
+  .tabla th:first-child, .tabla td:first-child{text-align:left}
+  .tabla td{padding:8px 4px; border-top:1px solid var(--fina); text-align:center; font-weight:600}
+  .tabla tr:first-child td{border-top:0}
+  .tabla .pos{color:var(--suave); width:18px; font-weight:700}
+  .tabla tr.lider td{background:rgba(var(--ac),0.06)}
+  .tabla .pct{font-family:'Orbitron','Exo 2',sans-serif; font-size:.8rem; color:var(--verde)}
+  .res{font-family:'Orbitron','Exo 2',sans-serif; font-weight:900; font-size:.9rem; white-space:nowrap}
+  .res .gana{color:var(--verde)}
+  .res.pp{color:var(--amarillo); font-family:'Exo 2', sans-serif; font-size:.8rem}
+  .fecha{font-size:.8rem; color:var(--suave); font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin:14px 2px 8px; display:flex; align-items:center; gap:8px}
+  .fecha::after{content:""; flex:1; height:1px; background:var(--linea-azul)}
+  .fecha:first-child{margin-top:0}
+  .juego{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--fina)}
+  .juego:first-of-type{border-top:0}
+  .juego .eq.der{justify-content:flex-end; text-align:right}
+  .juego .eq span:not(.escudo){font-weight:600; font-size:.9rem}
+  .juego .medio{text-align:center; min-width:62px}
+  .hora{font-weight:700; font-size:.9rem}
+  .medio small{display:block; color:var(--suave); font-size:.68rem}
+  .leyenda{font-size:.72rem; color:var(--suave); text-align:center; margin:2px 0 12px}
+  .nota{font-size:.72rem; color:var(--suave); text-align:center; line-height:1.4; margin:8px 6px 0}
+
+  /* ================= ESTILO VIVO (como LotoAnalytics) ================= */
+  body{background:#0a1450}
+  .fondo{
+    background:
+      radial-gradient(70% 45% at 50% -5%, rgba(120,70,255,0.55), transparent 70%),
+      radial-gradient(55% 40% at -5% 55%, rgba(var(--ac),0.30), transparent 70%),
+      radial-gradient(60% 45% at 105% 85%, rgba(190,50,220,0.45), transparent 70%),
+      linear-gradient(180deg, #0c2399 0%, #0a1668 45%, #070f45 100%);
+  }
+  /* Estrellitas que brillan */
+  .fondo::after{content:""; position:absolute; inset:0; opacity:.8; animation:titila 4s ease-in-out infinite alternate;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 78% 12%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 42% 36%, #fff, transparent), radial-gradient(1px 1px at 88% 44%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 22% 62%, #fff, transparent), radial-gradient(1px 1px at 64% 70%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 92% 88%, #fff, transparent), radial-gradient(1px 1px at 8% 92%, #fff, transparent),
+      radial-gradient(1px 1px at 55% 8%, #fff, transparent), radial-gradient(1.5px 1.5px at 34% 84%, #fff, transparent);}
+  @keyframes titila{from{opacity:.35} to{opacity:.9}}
+  /* Pelotas que flotan en el fondo */
+  .orbes{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+  .orbe{position:absolute; border-radius:50%; opacity:.7; animation:flota 9s ease-in-out infinite alternate}
+  .orbe.pelota{opacity:.55}
+  .orbe.pelota{background:
+      radial-gradient(circle at 32% 28%, #fff 0 10%, rgba(255,255,255,0) 40%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M9 4c5 6 5 26 0 32M31 4c-5 6-5 26 0 32' fill='none' stroke='%23e03040' stroke-width='1.6' stroke-dasharray='2 2.2'/%3E%3C/svg%3E") center/100% 100%,
+      radial-gradient(circle at 45% 40%, #ffffff, #c9d3ee 70%, #8b97c4 100%);
+    box-shadow:0 0 24px rgba(255,255,255,0.35)}
+  .orbe.luz{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.75) 0 8%, rgba(var(--ac),0.9) 30%, rgba(var(--ac),0.15) 70%, transparent 72%); filter:blur(.5px)}
+  .orbe.luz2{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.7) 0 8%, rgba(190,60,255,0.85) 30%, rgba(190,60,255,0.12) 70%, transparent 72%)}
+  .orbe.luz3{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.7) 0 8%, rgba(var(--ac2),0.85) 30%, rgba(var(--ac2),0.12) 70%, transparent 72%)}
+  .orbe.lejos{filter:blur(3px); opacity:.55}
+  @keyframes flota{from{transform:translateY(0) rotate(0)} to{transform:translateY(-22px) rotate(25deg)}}
+  @media (prefers-reduced-motion: reduce){ .orbe, .fondo::after{animation:none} }
+
+  .btn-ic{background:rgba(10,24,90,0.65); border:1.5px solid rgba(var(--ac),0.65); box-shadow:0 0 12px rgba(var(--ac),0.35); border-radius:14px}
+  .marca b{font-family:'Audiowide', 'Exo 2', sans-serif; font-style:normal; font-weight:400; font-size:1.3rem; letter-spacing:0;
+    background:linear-gradient(90deg, rgb(var(--ac)) 0%, var(--claro) 50%, rgb(var(--ac2)) 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 8px rgba(var(--ac),0.45))}
+  .lema{color:#c9b8ff}
+  .tabs{background:rgba(8,18,70,0.72); border:1.5px solid rgba(255,255,255,0.10); box-shadow:0 6px 20px rgba(0,0,20,0.35)}
+  .tab{color:#dfe6ff; text-transform:uppercase; letter-spacing:.05em; font-size:.7rem; font-weight:700}
+  .tab.activo{background:linear-gradient(180deg, var(--claro) -40%, rgb(var(--ac)) 45%, var(--verde2) 100%);
+    box-shadow:0 0 18px rgba(var(--ac),0.75), inset 0 1px 0 rgba(255,255,255,0.5)}
+  .titulo{font-family:'Audiowide','Exo 2',sans-serif; font-weight:400; text-transform:none; letter-spacing:0; font-size:1.12rem;
+    padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.12); margin:8px 2px 12px}
+  .titulo svg{filter:drop-shadow(0 0 5px rgba(var(--ac),0.8))}
+  .vivo{font-family:'Exo 2',sans-serif; font-weight:800}
+
+  .tarjeta{background:linear-gradient(160deg, rgba(var(--ac),0.20) 0%, rgba(10,22,80,0.78) 45%, rgba(8,16,60,0.82) 100%);
+    border:1.5px solid rgba(var(--ac),0.6); border-radius:18px;
+    box-shadow:0 0 16px rgba(var(--ac),0.30), inset 0 0 22px rgba(var(--ac),0.08); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px)}
+  .tarjeta.en-vivo{border-color:rgb(var(--ac)); box-shadow:0 0 26px rgba(var(--ac),0.55), inset 0 0 26px rgba(var(--ac),0.12)}
+  .estado b{text-shadow:0 0 8px rgba(var(--ac),0.7)}
+  .fecha{color:#dfe6ff}
+  .fecha::after{background:linear-gradient(90deg, rgba(var(--ac),0.6), transparent)}
+
+  /* Bolas brillantes para los números (como los números de la lotería) */
+  .bola{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%;
+    font:800 1.1rem 'Exo 2', system-ui, sans-serif; color:var(--sobre); letter-spacing:-0.02em;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,0.85) 0 7%, rgba(255,255,255,0.25) 20%, transparent 40%),
+      radial-gradient(circle at 50% 60%, rgb(var(--ac)) 0 50%, var(--verde2) 100%);
+    box-shadow:0 0 14px rgba(var(--ac),0.65), inset 0 -4px 8px rgba(0,0,0,0.25)}
+  .bola.chica{width:34px; height:34px; font-size:.95rem}
+  .bola.apagada{color:#fff;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,0.7) 0 7%, rgba(255,255,255,0.18) 20%, transparent 40%),
+      radial-gradient(circle at 50% 60%, #3d6cff 0 45%, #1a2f9a 100%);
+    box-shadow:0 0 10px rgba(61,108,255,0.45), inset 0 -4px 8px rgba(0,0,0,0.3)}
+  .marcador td.c{padding:5px 0}
+  .marcador tr.pierde td.c{color:inherit}
+  .res{display:inline-flex; align-items:center; gap:4px}
+  .res i{font-style:normal; color:var(--suave); font-weight:700}
+  .juego .medio{min-width:84px}
+  .punto.b{box-shadow:0 0 6px rgb(var(--ac))}
+  .punto.s{box-shadow:0 0 6px var(--amarillo)}
+
+  /* Escudos: animales propios (dibujos nuestros, no logos oficiales) en bola brillante */
+  .escudo{position:relative; overflow:hidden; width:40px; height:40px; border:2px solid rgba(255,255,255,0.9);
+    background:
+      radial-gradient(circle at 30% 24%, rgba(255,255,255,0.6) 0 6%, rgba(255,255,255,0.14) 22%, transparent 42%),
+      linear-gradient(145deg, var(--e1), var(--e2));
+    box-shadow:0 0 12px var(--e1), inset 0 -3px 6px rgba(0,0,0,0.3)}
+  .escudo svg{width:84%; height:84%; position:relative}
+  .escudo.bandera::after{content:""; position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 30% 24%, rgba(255,255,255,0.65) 0 6%, rgba(255,255,255,0.12) 24%, transparent 45%), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%)}
+  .escudo.bandera{box-shadow:0 0 12px rgba(255,255,255,0.35)}
+  .tabla .escudo{width:34px; height:34px}
+  .tabla tr.lider td{background:rgba(var(--ac),0.14)}
+  .tabla .pct{text-shadow:0 0 8px rgba(var(--ac),0.6)}
+  .menu{background:linear-gradient(180deg, rgba(14,32,130,0.97), rgba(8,14,60,0.98))}
+  .tema{background:rgba(10,24,90,0.65)}
+</style>
+</head>
+<body>
+<div class="fondo" aria-hidden="true"></div>
+<div class="orbes" aria-hidden="true">
+  <span class="orbe pelota" style="width:110px;height:110px;left:-62px;top:22%;animation-duration:11s"></span>
+  <span class="orbe luz" style="width:70px;height:70px;right:-34px;top:9%;animation-duration:8s"></span>
+  <span class="orbe luz2 lejos" style="width:90px;height:90px;right:-40px;top:40%;animation-duration:12s"></span>
+  <span class="orbe pelota lejos" style="width:70px;height:70px;right:-30px;top:66%;animation-duration:10s"></span>
+  <span class="orbe luz3" style="width:46px;height:46px;left:-20px;top:76%;animation-duration:7s"></span>
+  <span class="orbe luz lejos" style="width:120px;height:120px;left:-60px;bottom:-50px;animation-duration:13s"></span>
+  <span class="orbe pelota" style="width:56px;height:56px;right:-24px;bottom:2%;animation-duration:9s"></span>
+  <span class="orbe luz2" style="width:38px;height:38px;left:38%;top:-14px;animation-duration:8.5s"></span>
+</div>
+
+<!-- Menú ☰: escoger el torneo y los colores del diseño -->
+<div class="velo" id="velo"></div>
+<aside class="menu" id="menu" aria-label="Menú">
+  <div class="menu-cab">
+    <b>Menú</b>
+    <button class="btn-ic" id="cerrar-menu" aria-label="Cerrar menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <h3>Torneos</h3>
+  <div class="temas" id="torneos"></div>
+  <h3>Colores del diseño</h3>
+  <div class="temas" id="temas"></div>
+  <a class="menu-link" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    Volver a LotoAnalytics
+  </a>
+</aside>
+
+<div class="app">
+  <header class="cabecera">
+    <button class="btn-ic" id="abrir-menu" aria-label="Abrir menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="marca">
+      <!-- Logo: pelota de béisbol con barras de análisis -->
+      <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="16" cy="16" r="13"/>
+        <path d="M9 5.5c3 3.5 3 17.5 0 21M23 5.5c-3 3.5-3 17.5 0 21" stroke-width="1.6"/>
+        <path d="M12.5 21v-3M16 21v-6M19.5 21v-9" stroke-width="2.6"/>
+      </svg>
+      <b>Baseball Analytics</b>
+    </div>
+    <span class="btn-ic" aria-hidden="true" style="visibility:hidden"></span>
+  </header>
+  <p class="lema" id="lema">Pelota invernal <i>·</i> LIDOM</p>
+  <p class="aviso-prueba">Vista de prueba · los juegos y números son de ejemplo</p>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button class="tab activo" data-vista="portada">Portada</button>
+    <button class="tab" data-vista="posiciones">Posiciones</button>
+    <button class="tab" data-vista="calendario">Calendario</button>
+    <button class="tab" data-vista="resultados">Resultados</button>
+  </nav>
+
+  <!-- PORTADA -->
+  <section class="vista activa" id="portada">
+    <div class="titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M7 5.5c2 3 2 10 0 13M17 5.5c-2 3-2 10 0 13"/></svg>
+      Juego de hoy <span class="vivo" id="vivo">EN VIVO</span>
+    </div>
+    <div id="juego-hoy"></div>
+
+    <div class="titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+      Resultados anteriores
+    </div>
+    <div id="anteriores"></div>
+  </section>
+
+  <!-- POSICIONES -->
+  <section class="vista" id="posiciones">
+    <div class="titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Tabla de posiciones
+    </div>
+    <div class="tarjeta"><table class="tabla" id="tabla-pos"></table></div>
+    <p class="leyenda">G: ganados · P: perdidos · DIF: juegos detrás del líder · PCT: promedio de victorias</p>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section class="vista" id="calendario">
+    <div class="titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Próximos juegos
+    </div>
+    <p class="leyenda">Visitante a la izquierda · Casa a la derecha</p>
+    <div id="lista-cal"></div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section class="vista" id="resultados">
+    <div class="titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+      Resultados
+    </div>
+    <p class="leyenda">Visitante a la izquierda · Casa a la derecha · PP: pospuesto</p>
+    <div id="lista-res"></div>
+  </section>
+
+  <p class="nota">Solo información y estadística de béisbol.</p>
+</div>
+
+<script>
+  // ===== Banderas (dibujadas con colores, en círculo) para torneos de países =====
+  const conic = (tr, br, bl, tl) => `conic-gradient(${tr} 0 25%, ${br} 25% 50%, ${bl} 50% 75%, ${tl} 75%)`;
+  const h3 = (a, b, c) => `linear-gradient(180deg, ${a} 0 33.3%, ${b} 33.3% 66.6%, ${c} 66.6%)`;
+  const v3 = (a, b, c) => `linear-gradient(90deg, ${a} 0 33.3%, ${b} 33.3% 66.6%, ${c} 66.6%)`;
+  const BANDERAS = {
+    MEX: v3('#006847','#fff','#ce1126'),
+    DOM: `linear-gradient(#fff,#fff) center/100% 18% no-repeat, linear-gradient(#fff,#fff) center/18% 100% no-repeat, ${conic('#ce1126','#002d62','#ce1126','#002d62')}`,
+    PUR: `linear-gradient(90deg, #0050f0 0 36%, transparent 36%), repeating-linear-gradient(180deg, #ed0a3f 0 20%, #fff 20% 40%)`,
+    PAN: conic('#d21034','#fff','#005293','#fff'),
+    VEN: h3('#fcd116','#00247d','#cf142b'),
+    EEUU: `linear-gradient(#3c3b6e,#3c3b6e) 0 0/48% 54% no-repeat, repeating-linear-gradient(180deg, #b22234 0 15.4%, #fff 15.4% 30.8%)`,
+    ITA: v3('#009246','#fff','#ce2b37'),
+    JP: `radial-gradient(circle, #bc002d 0 32%, #fff 33%)`,
+    KOR: `radial-gradient(circle, transparent 0 30%, #fff 31%), linear-gradient(180deg, #cd2e3a 50%, #0047a0 50%)`,
+    CA: `linear-gradient(90deg, #d52b1e 0 25%, #fff 25% 75%, #d52b1e 75%)`,
+    ISR: `linear-gradient(180deg, #fff 0 16%, #0038b8 16% 28%, #fff 28% 72%, #0038b8 72% 84%, #fff 84%)`,
+    NL: h3('#ae1c28','#fff','#21468b'),
+    NIC: h3('#0067c6','#fff','#0067c6'),
+  };
+  // ===== Animales de los equipos LIDOM: dibujos PROPIOS de Baseball Analytics (no son los logos oficiales) =====
+  // Los detalles usan 'currentColor' = el color oscuro del equipo.
+  const ANIMALES = {
+    "aguila": "\n<path d=\"M6 60 L10 46 L5 44 L12 36 L7 33 L15 26 L12 22 L21 18 C26 11 34 8 41 9 C47 10 51 13 53 16 C58 17 61 21 61 26 C61 31 58 35 54 37 C54 33 52 31 49 31 L47 32 C45 36 41 40 37 45 C33 51 31 56 30 60 Z\" fill=\"#fff\"/>\n<path d=\"M21 18 L29 30 L15 26 Z M12 36 L26 38 L10 46 Z M18 50 L30 46 L22 58 Z\" fill=\"#d6deef\"/>\n<path d=\"M45 15 C51 14 56 15 59 19 C61 22 61 26 59 30 C58 33 56 35 54 37 C54 33 52 31 49 31 L44 31 C46 27 46 22 45 15 Z\" fill=\"currentColor\"/>\n<path d=\"M47 31 C50 30 53 31 54 35 L50 33 Z\" fill=\"#fff\" opacity=\".85\"/>\n<path d=\"M27 15 L45 18 L43 22 Z\" fill=\"currentColor\"/>\n<path d=\"M35 21 L43 22 L40 25 Z\" fill=\"currentColor\"/>\n",
+    "tigre": "\n<path d=\"M8 60 C6 50 6 38 10 28 L12 14 L20 20 C26 15 34 13 41 15 L46 17 C52 19 56 22 59 25 L61 30 L57 33 L58 36 L52 35 L49 39 L55 43 L52 49 C47 52 42 53 37 53 L33 58 L30 54 L26 60 L23 55 L18 61 Z\" fill=\"#fff\"/>\n<path d=\"M12 14 L20 20 L14 24 Z\" fill=\"#d6deef\"/>\n<path d=\"M44 42 C46 46 50 48 52 49 C47 52 42 53 37 53 C40 50 42 46 44 42 Z\" fill=\"#d6deef\"/>\n<path d=\"M57 25 L61 30 L56 31 Z\" fill=\"currentColor\"/>\n<path d=\"M44 21 L53 24 L45 26 Z\" fill=\"currentColor\"/>\n<path d=\"M40 19 L55 23\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>\n<path d=\"M49 39 L57 33 L58 36 L52 35 Z M49 39 L55 43 L50 42 Z\" fill=\"currentColor\"/>\n<path d=\"M53 35.5 L54.5 38.5 L55.5 35.5 Z M51 41.5 L52.5 39 L53.5 42 Z\" fill=\"#fff\"/>\n<path d=\"M31 16 L33.5 23 L34.5 16 Z M24 19 L27.5 26 L27.5 18.5 Z M11 31 L24 33.5 L11 35 Z M10 41 L23 42 L11 45 Z M14 52 L24 49 L16 55 Z M37 30 L42 32.5 L37 34 Z\" fill=\"currentColor\"/>\n",
+    "leon": "\n<path d=\"M24 62 L18 55 L10 58 L12 50 L4 48 L10 42 L3 36 L10 32 L5 25 L13 22 L10 14 L19 14 L19 6 L27 10 L31 3 L36 10 L42 6 L44 13 L50 12 L48 18 C52 20 55 23 57 26 L61 30 L57 33 L58 36 L52 35 L49 39 L55 43 L51 48 C47 51 43 52 39 52 L40 58 L33 55 L31 62 Z\" fill=\"#fff\"/>\n<path d=\"M10 14 L19 14 L24 22 Z M4 48 L10 42 L18 44 Z M3 36 L10 32 L16 34 Z M5 25 L13 22 L18 27 Z M19 6 L27 10 L26 17 Z M31 3 L36 10 L32 15 Z M18 55 L10 58 L20 50 Z M42 6 L44 13 L38 14 Z\" fill=\"#d6deef\"/>\n<path d=\"M38 17 C32 22 29 32 31 42 C32 47 35 50 39 52\" stroke=\"currentColor\" stroke-width=\"1.5\" fill=\"none\" stroke-linecap=\"round\" opacity=\".55\"/>\n<path d=\"M57 26 L61 30 L56 31 Z\" fill=\"currentColor\"/>\n<path d=\"M43 22 L52 24.5 L44 27 Z\" fill=\"currentColor\"/>\n<path d=\"M40 20 L54 23.5\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>\n<path d=\"M49 39 L57 33 L58 36 L52 35 Z M49 39 L55 43 L50 42 Z\" fill=\"currentColor\"/>\n<path d=\"M53 35.5 L54.5 38.5 L55.5 35.5 Z M51 41.5 L52.5 39 L53.5 42 Z\" fill=\"#fff\"/>\n",
+    "toro": "\n<path d=\"M26 18 C28 8 38 2 50 2 C44 6 40 11 38 18 Z\" fill=\"#fff\"/>\n<path d=\"M26 18 C28 8 38 2 50 2 C43 5 38 9 35 14 Z\" fill=\"#d6deef\"/>\n<path d=\"M8 60 C5 48 7 36 12 27 L6 23 L16 21 C22 16 30 14 38 16 C44 18 48 22 51 28 L58 38 C61 42 60 48 56 50 C53 52 49 51 46 49 L42 50 C38 54 36 57 35 61 Z\" fill=\"#fff\"/>\n<path d=\"M6 23 L16 21 L13 26 Z\" fill=\"currentColor\" opacity=\".5\"/>\n<path d=\"M56 50 C60 48 61 42 58 38 L52 41 C54 44 54 47 52 50 Z\" fill=\"#d6deef\"/>\n<ellipse cx=\"55.5\" cy=\"43.5\" rx=\"1.6\" ry=\"2.4\" transform=\"rotate(-25 55.5 43.5)\" fill=\"currentColor\"/>\n<path d=\"M34 25 L44 27 L36 30 Z\" fill=\"currentColor\"/>\n<path d=\"M31 22 L46 25\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/>\n<circle cx=\"56\" cy=\"51\" r=\"3.6\" stroke=\"currentColor\" stroke-width=\"1.6\" fill=\"none\"/>\n<path d=\"M14 34 L26 38 L12 42 Z M14 48 L28 46 L16 54 Z\" fill=\"#d6deef\"/>\n",
+    "caballo": "\n<path d=\"M26 4 L22 10 L14 12 L17 16 L9 20 L14 23 L6 29 L12 31 L5 38 L12 39 L6 47 L13 46 L9 55 L16 52 L15 61 L21 56 Z\" fill=\"#fff\" opacity=\".8\"/>\n<path d=\"M14 12 L17 16 L22 13 Z M9 20 L14 23 L19 20 Z M6 29 L12 31 L17 28 Z M5 38 L12 39 L16 36 Z M6 47 L13 46 L17 44 Z\" fill=\"currentColor\" opacity=\".35\"/>\n<path d=\"M19 60 C17 50 18 38 22 28 L24 14 L28 4 L33 13 C40 13 46 17 50 23 L59 38 C62 43 60 49 55 50 L48 49 C44 49 41 51 39 54 L37 60 Z\" fill=\"#fff\"/>\n<path d=\"M24 14 L28 4 L30 14 Z\" fill=\"#d6deef\"/>\n<path d=\"M50 23 L59 38 C61 42 60 46 57 48 C57 42 54 34 47 27 Z\" fill=\"#d6deef\"/>\n<path d=\"M38 22 L46 24 L39 27 Z\" fill=\"currentColor\"/>\n<path d=\"M35 19 L48 22.5\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>\n<path d=\"M53 41 C56 40 58 42 57 44 C56 45 54 45 53 44 Z\" fill=\"currentColor\"/>\n<path d=\"M50 49 L56 47\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\"/>\n<path d=\"M27 34 C30 40 32 44 37 46\" stroke=\"currentColor\" stroke-width=\"1.4\" fill=\"none\" opacity=\".45\"/>\n",
+    "elefante": "\n<path d=\"M24 14 C10 11 4 23 6 35 C7 44 14 49 23 47 C20 38 20 25 24 14 Z\" fill=\"#fff\"/>\n<path d=\"M24 14 C13 13 8 21 8 30 C12 24 17 20 23 19 Z\" fill=\"#d6deef\"/>\n<path d=\"M23 47 C18 47 13 45 10 41 C14 43 18 43 21 42 Z\" fill=\"currentColor\" opacity=\".3\"/>\n<path d=\"M22 56 C18 45 17 32 20 22 C23 13 30 8 38 8 C47 8 53 14 54 23 C55 32 55 42 57 50 C58 55 60 57 62 58 C64 60 61 63 57 62 C54 61 52 56 51 51 C50 46 49 42 47 39 L42 42 L37 50 L34 58 Z\" fill=\"#fff\"/>\n<path d=\"M54 23 C55 32 55 42 57 50 C54 46 52 40 51 33 C51 29 52 26 54 23 Z\" fill=\"#d6deef\"/>\n<path d=\"M51.5 50 L56 49 M50.5 45 L55 44 M50 40 L54.5 39\" stroke=\"currentColor\" stroke-width=\".9\" opacity=\".4\"/>\n<path d=\"M44 39 C46 45 51 48 57 46 C52 50 46 49 42.5 43 Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\".9\"/>\n<path d=\"M39 21 L47 22.6 L40 25.4 Z\" fill=\"currentColor\"/>\n<path d=\"M36 18 L48 20.5\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>\n<path d=\"M32 10 L33.4 13.1 L36.8 13.5 L34.3 15.7 L35 19.1 L32 17.4 L29 19.1 L29.7 15.7 L27.2 13.5 L30.6 13.1 Z\" fill=\"currentColor\"/>\n<path d=\"M27 30 C29 36 32 40 37 42\" stroke=\"currentColor\" stroke-width=\"1.3\" fill=\"none\" opacity=\".4\"/>\n"
+  };
+
+  // Equipo de país: se muestra la bandera y el código (como en el modelo)
+  const pais = (codigo, bandera) => ({ nombre: codigo, bandera: BANDERAS[bandera || codigo] });
+
+  // ===== TORNEOS (menú ☰). Datos de EJEMPLO, luego los traerá el robot =====
+  // juegoHoy: juego en vivo (null = no hay). anteriores: tarjetas con C/H/E (null = se usan los últimos resultados).
+  // posiciones: [equipo, G, P] (null = se calculan solas con los resultados).
+  // calendario: [fecha, visitante, casa, hora]. resultados: [fecha, visitante, carreras visitante, carreras casa, casa] (null = PP).
+  const TORNEOS = {
+    invernal: {
+      nombre:'Pelota Invernal', sub:'LIDOM · República Dominicana', lema:'Pelota invernal <i>·</i> LIDOM',
+      equipos: {
+        // Equipos LIDOM: círculos con iniciales y colores propios (no son los logos oficiales)
+        TL: { nombre:'Tigres',    c1:'#2e78ff', c2:'#0b2a6e', animal:'tigre' },
+        GC: { nombre:'Gigantes',  c1:'#b03a52', c2:'#3a0d16', animal:'caballo' },
+        TE: { nombre:'Toros',     c1:'#ff9a2e', c2:'#b84400', animal:'toro', osc:'#7a2c00' },
+        EO: { nombre:'Estrellas', c1:'#22c86a', c2:'#0b4d27', animal:'elefante' },
+        AC: { nombre:'Águilas',   c1:'#ffd21f', c2:'#a87b00', animal:'aguila', osc:'#6b4c00' },
+        LE: { nombre:'Leones',    c1:'#ff3a4a', c2:'#7a0d16', animal:'leon' },
+      },
+      // "alBate": 'v' = visitante, 'c' = casa. "bases": [1ra, 2da, 3ra]
+      juegoHoy: {
+        entrada:'Baja 7ma', alBate:'c',
+        v:{ eq:'TE', c:2, h:6, e:2 }, casa:{ eq:'GC', c:5, h:8, e:1 },
+        bolas:0, strikes:0, outs:2, bases:[false,false,false],
+        bateador:'Jake Holton', lanzador:'Phillips Valdez',
+        ultima:'Noelvi Marte · Out: elevado al jardinero derecho', nota:'Cambio de lanzador',
+      },
+      anteriores: [
+        { estado:'Final', fecha:'21 oct 2026', v:{ eq:'TL', c:3, h:5, e:0 }, casa:{ eq:'TE', c:0, h:0, e:2 },
+          ganador:'Alexander Cornielle', perdedor:'Bryce Conley', salvamento:'Jean Carlos Mejía' },
+        { estado:'Pospuesto', fecha:'21 oct 2026, 7:15 p. m.', v:{ eq:'EO', c:0, h:1, e:0 }, casa:{ eq:'AC', c:0, h:0, e:0 },
+          motivo:'Por lluvias' },
+        { estado:'Final', fecha:'21 oct 2026', v:{ eq:'GC', c:14, h:11, e:3 }, casa:{ eq:'LE', c:9, h:11, e:2 },
+          ganador:'H. Robles', perdedor:'Ivan Armstrong' },
+      ],
+      posiciones: [['TL',4,1],['GC',3,2],['TE',3,2],['EO',2,2],['AC',1,3],['LE',1,4]],
+      calendario: [
+        ['22 oct 2026','TE','GC','7:00 p. m.'],
+        ['23 oct 2026','AC','LE','7:15 p. m.'], ['23 oct 2026','TL','EO','7:30 p. m.'],
+        ['24 oct 2026','TE','LE','4:00 p. m.'], ['24 oct 2026','TL','AC','6:00 p. m.'], ['24 oct 2026','GC','EO','7:30 p. m.'],
+        ['25 oct 2026','EO','GC','5:00 p. m.'], ['25 oct 2026','LE','TE','5:00 p. m.'], ['25 oct 2026','AC','TL','5:00 p. m.'],
+        ['27 oct 2026','LE','GC','7:00 p. m.'], ['27 oct 2026','TE','TL','7:30 p. m.'], ['27 oct 2026','AC','EO','7:30 p. m.'],
+        ['28 oct 2026','LE','AC','7:30 p. m.'], ['28 oct 2026','GC','TE','7:30 p. m.'], ['28 oct 2026','EO','TL','7:30 p. m.'],
+      ],
+      resultados: [
+        ['21 oct 2026','TL',3,0,'TE'], ['21 oct 2026','GC',14,9,'LE'], ['21 oct 2026','EO',null,null,'AC'],
+        ['20 oct 2026','AC',4,7,'TE'], ['20 oct 2026','EO',3,5,'LE'], ['20 oct 2026','TL',14,1,'GC'],
+        ['18 oct 2026','LE',4,5,'TL'], ['18 oct 2026','GC',1,4,'AC'], ['18 oct 2026','TE',6,4,'EO'],
+        ['17 oct 2026','LE',3,8,'EO'], ['17 oct 2026','TE',5,3,'AC'], ['17 oct 2026','GC',7,1,'TL'],
+        ['16 oct 2026','EO',11,0,'TE'], ['16 oct 2026','TL',12,2,'LE'], ['16 oct 2026','AC',1,4,'GC'],
+      ],
+    },
+
+    caribe: {
+      nombre:'Serie del Caribe', sub:'Campeones de cada país', lema:'Serie del Caribe <i>·</i> 2026',
+      equipos: { MEX:pais('MEX'), MXV:pais('MXV','MEX'), PUR:pais('PUR'), DOM:pais('DOM'), PAN:pais('PAN') },
+      juegoHoy:null, anteriores:null, posiciones:null, calendario:[],
+      resultados: [
+        ['07 feb 2026','MXV',11,12,'MEX'],
+        ['06 feb 2026','PUR',6,8,'MEX'], ['06 feb 2026','MXV',9,4,'DOM'],
+        ['05 feb 2026','DOM',7,10,'MXV'], ['05 feb 2026','PUR',8,3,'PAN'],
+        ['04 feb 2026','MXV',2,4,'MEX'], ['04 feb 2026','PAN',15,16,'DOM'],
+        ['03 feb 2026','MEX',3,0,'PUR'], ['03 feb 2026','PAN',1,2,'MXV'],
+        ['02 feb 2026','MEX',11,4,'PAN'], ['02 feb 2026','PUR',3,5,'DOM'],
+        ['01 feb 2026','DOM',5,4,'MEX'], ['01 feb 2026','MXV',4,5,'PUR'],
+      ],
+    },
+
+    clasico: {
+      nombre:'Clásico Mundial', sub:'Selecciones nacionales', lema:'Clásico Mundial <i>·</i> 2026',
+      equipos: { CA:pais('CA'), ISR:pais('ISR'), VEN:pais('VEN'), EEUU:pais('EEUU'), ITA:pais('ITA'), DOM:pais('DOM'), JP:pais('JP'),
+                 PUR:pais('PUR'), KOR:pais('KOR'), MEX:pais('MEX'), NL:pais('NL'), PAN:pais('PAN'), NIC:pais('NIC') },
+      juegoHoy:null, anteriores:null, posiciones:null, calendario:[],
+      resultados: [
+        ['28 sept 2026','CA',6,2,'ISR'],
+        ['17 mar 2026','VEN',3,2,'EEUU'],
+        ['16 mar 2026','VEN',4,2,'ITA'],
+        ['15 mar 2026','EEUU',2,1,'DOM'],
+        ['14 mar 2026','VEN',8,5,'JP'], ['14 mar 2026','PUR',6,8,'ITA'],
+        ['13 mar 2026','EEUU',5,3,'CA'], ['13 mar 2026','KOR',0,10,'DOM'],
+        ['11 mar 2026','DOM',7,5,'VEN'],
+        ['09 mar 2026','MEX',3,5,'EEUU'], ['09 mar 2026','DOM',10,1,'ISR'],
+        ['08 mar 2026','NL',1,12,'DOM'],
+        ['07 mar 2026','ISR',3,11,'VEN'], ['07 mar 2026','PAN',3,4,'PUR'],
+      ],
+    },
+  };
+  let T = TORNEOS.invernal, EQUIPOS = T.equipos;
+
+  // ===== Dibujo =====
+  const $ = (id) => document.getElementById(id);
+  const escudo = (k) => { const t = EQUIPOS[k];
+    if(t.bandera) return `<span class="escudo bandera" style="background:${t.bandera}" aria-hidden="true"></span>`;
+    if(t.animal) return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:${t.osc || t.c2}" aria-hidden="true"><svg viewBox="0 0 64 64">${ANIMALES[t.animal]}</svg></span>`;
+    return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:#fff; font:800 .62rem 'Exo 2', sans-serif">${k}</span>`; };
+  const eq = (k, conNombre=true, der=false) => der
+    ? `<div class="eq der"><span>${conNombre ? EQUIPOS[k].nombre : k}</span>${escudo(k)}</div>`
+    : `<div class="eq">${escudo(k)}<span>${conNombre ? EQUIPOS[k].nombre : k}</span></div>`;
+  const icoBate = `<svg class="al-bate" viewBox="0 0 24 24" fill="currentColor" aria-label="al bate"><path d="M20.5 2.5c1 1 .6 2.4-.4 3.4l-9 9-2.6-2.6 9-9c1-1 2-1.8 3-.8z"/><path d="M7.6 13.4l2.6 2.6-1.2 1.2-2.6-2.6zM5.6 15.6l2.4 2.4-2.6 2.6c-.7.7-1.7.7-2.4 0s-.7-1.7 0-2.4z"/><circle cx="18" cy="18" r="2.6"/></svg>`;
+  const vacio = (titulo, texto) => `<div class="tarjeta vacio"><b>${titulo}</b>${texto}</div>`;
+
+  function marcador(j, alBate){
+    const fila = (lado, quien) => {
+      const d = j[lado], otro = j[lado === 'v' ? 'casa' : 'v'];
+      const pierde = d.c < otro.c ? 'pierde' : '';
+      return `<tr class="${pierde}"><td><div class="eq">${escudo(d.eq)}<span>${EQUIPOS[d.eq].nombre}</span>${alBate === quien ? icoBate : ''}</div></td>
+        <td class="c"><span class="bola chica ${pierde ? 'apagada' : ''}">${d.c}</span></td><td>${d.h}</td><td>${d.e}</td></tr>`;
+    };
+    return `<table class="marcador"><tr><th></th><th>C</th><th>H</th><th>E</th></tr>${fila('v','v')}${fila('casa','c')}</table>`;
+  }
+
+  function puntos(n, total, cls){ return Array.from({length: total}, (_, i) => `<span class="punto ${i < n ? cls : ''}"></span>`).join(''); }
+
+  // Una fila "visitante – resultado – casa"
+  function filaResultado([, v, cv, cc, c]){
+    const medio = cv === null
+      ? `<span class="res pp">PP</span>`
+      : `<span class="res"><span class="bola chica ${cv>cc?'':'apagada'}">${cv}</span><i>:</i><span class="bola chica ${cc>cv?'':'apagada'}">${cc}</span></span>`;
+    return `<div class="juego">${eq(v)}<div class="medio">${medio}</div>${eq(c, true, true)}</div>`;
+  }
+
+  function pintarPortada(){
+    const j = T.juegoHoy;
+    $('vivo').style.display = j ? '' : 'none';
+    if(!j){
+      $('juego-hoy').innerHTML = vacio('No hay juego en vivo', T.calendario.length ? 'Mira los próximos juegos en Calendario.' : 'Este torneo ya terminó. Mira los resultados abajo.');
+    } else {
+      const [b1,b2,b3] = j.bases;
+      $('juego-hoy').innerHTML = `
+        <div class="tarjeta en-vivo">
+          <div class="estado"><b>${j.entrada}</b><span>Hoy</span></div>
+          ${marcador(j, j.alBate)}
+          <div class="situacion">
+            <svg class="diamante" viewBox="0 0 82 62" aria-label="bases">
+              <rect class="${b2?'on':''}" x="31" y="4" width="20" height="20" rx="2" transform="rotate(45 41 14)"/>
+              <rect class="${b3?'on':''}" x="7" y="28" width="20" height="20" rx="2" transform="rotate(45 17 38)"/>
+              <rect class="${b1?'on':''}" x="55" y="28" width="20" height="20" rx="2" transform="rotate(45 65 38)"/>
+            </svg>
+            <div class="conteo">
+              <div><b>B</b>${puntos(j.bolas,4,'b')}</div>
+              <div><b>S</b>${puntos(j.strikes,3,'s')}</div>
+              <div><b>O</b>${puntos(j.outs,3,'o')}</div>
+            </div>
+          </div>
+          <div class="detalle">
+            <b>Al bate:</b> ${j.bateador}<br>
+            <b>Lanzador:</b> ${j.lanzador}<br>
+            <b>Últ. jugada:</b> ${j.ultima}
+            ${j.nota ? `<br><span class="nota-juego">⚾ ${j.nota}</span>` : ''}
+          </div>
+        </div>`;
+    }
+
+    if(T.anteriores){
+      $('anteriores').innerHTML = T.anteriores.map(a => {
+        const pp = a.estado !== 'Final';
+        const det = pp
+          ? `<span class="nota-juego">${a.motivo || ''}</span>`
+          : `<b>Ganador:</b> ${a.ganador}<br><b>Perdedor:</b> ${a.perdedor}${a.salvamento ? `<br><b>Salvamento:</b> ${a.salvamento}` : ''}`;
+        return `<div class="tarjeta">
+          <div class="estado"><b class="${pp?'pp':''}">${a.estado}</b><span>${a.fecha}</span></div>
+          ${marcador(a)}
+          <div class="detalle" style="margin-top:8px">${det}</div>
+        </div>`;
+      }).join('');
+    } else {
+      // Sin tarjetas detalladas: se muestran los 3 últimos resultados
+      const ult = T.resultados.slice(0, 3);
+      $('anteriores').innerHTML = ult.length
+        ? ult.map(r => `<div class="tarjeta"><div class="estado"><b>Final</b><span>${r[0]}</span></div>${filaResultado(r)}</div>`).join('')
+        : vacio('Sin resultados todavía', '');
+    }
+  }
+
+  // Calcula G y P de cada equipo a partir de los resultados
+  function calcularPosiciones(){
+    const t = {}; Object.keys(EQUIPOS).forEach(k => t[k] = [k,0,0]);
+    T.resultados.forEach(([, v, cv, cc, c]) => {
+      if(cv === null || cv === cc) return;
+      const gana = cv > cc ? v : c, pierde = cv > cc ? c : v;
+      t[gana][1]++; t[pierde][2]++;
+    });
+    return Object.values(t);
+  }
+
+  function pintarPosiciones(){
+    const filas = (T.posiciones || calcularPosiciones()).map(([k,g,p]) => ({ k, g, p, pct: g + p ? g / (g + p) : 0 }))
+      .sort((a, b) => b.pct - a.pct || b.g - a.g);
+    const lider = filas[0];
+    const fmt = (x) => x >= 1 ? '1.000' : x.toFixed(3).replace(/^0/, '');
+    $('tabla-pos').innerHTML = `<tr><th colspan="2">Equipo</th><th>G</th><th>P</th><th>DIF</th><th>PCT</th></tr>` +
+      filas.map((f, i) => {
+        const dif = ((lider.g - f.g) + (f.p - lider.p)) / 2;
+        return `<tr class="${i===0?'lider':''}"><td class="pos">${i+1}</td><td>${eq(f.k)}</td>
+          <td>${f.g}</td><td>${f.p}</td><td>${dif === 0 ? '—' : dif}</td><td class="pct">${fmt(f.pct)}</td></tr>`;
+      }).join('');
+  }
+
+  // Agrupa una lista por fecha
+  function porFecha(lista){ const m = new Map(); lista.forEach(x => { if(!m.has(x[0])) m.set(x[0], []); m.get(x[0]).push(x); }); return m; }
+
+  function pintarCalendario(){
+    if(!T.calendario.length){ $('lista-cal').innerHTML = vacio('No hay juegos programados', 'Cuando se anuncien los próximos juegos de este torneo aparecerán aquí.'); return; }
+    let html = '';
+    porFecha(T.calendario).forEach((juegos, fecha) => {
+      html += `<div class="fecha">${fecha}</div><div class="tarjeta">` +
+        juegos.map(([, v, c, hora]) => `<div class="juego">${eq(v)}<div class="medio"><span class="hora">${hora}</span><small>vs</small></div>${eq(c, true, true)}</div>`).join('') +
+        `</div>`;
+    });
+    $('lista-cal').innerHTML = html;
+  }
+
+  function pintarResultados(){
+    let html = '';
+    porFecha(T.resultados).forEach((juegos, fecha) => {
+      html += `<div class="fecha">${fecha}</div><div class="tarjeta">` + juegos.map(filaResultado).join('') + `</div>`;
+    });
+    $('lista-res').innerHTML = html || vacio('Sin resultados todavía', '');
+  }
+
+  // ===== Torneos (menú ☰) =====
+  const ICO_TORNEO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>`;
+  const ICO_CHECK = `<svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>`;
+  $('torneos').innerHTML = Object.entries(TORNEOS).map(([id, t]) => `
+    <button class="tema torneo" data-torneo="${id}">
+      <span class="ico">${ICO_TORNEO}</span>
+      <span>${t.nombre}<small>${t.sub}</small></span>${ICO_CHECK}
+    </button>`).join('');
+  function ponerTorneo(id){
+    if(!TORNEOS[id]) id = 'invernal';
+    T = TORNEOS[id]; EQUIPOS = T.equipos;
+    $('lema').innerHTML = T.lema;
+    document.querySelectorAll('.torneo').forEach(b => b.classList.toggle('activo', b.dataset.torneo === id));
+    pintarPortada(); pintarPosiciones(); pintarCalendario(); pintarResultados();
+    try{ localStorage.setItem('ba-torneo', id); }catch(e){}
+  }
+  $('torneos').addEventListener('click', (e) => {
+    const b = e.target.closest('.torneo'); if(!b) return;
+    ponerTorneo(b.dataset.torneo);
+    document.body.classList.remove('menu-abierto');
+    window.scrollTo({ top: 0 });
+  });
+
+  // ===== Temas de color (menú ☰) =====
+  // ac = color principal, ac2 = segundo color, d = tono oscuro, claro = brillo del nombre, sobre = letra encima del color
+  const TEMAS = [
+    { id:'tigres',    nombre:'Tigres',    sub:'Azul',                ac:'64,150,255',  ac2:'0,224,255',   d:'#1d5bd6', claro:'#bfe0ff', sobre:'#ffffff' },
+    { id:'gigantes',  nombre:'Gigantes',  sub:'Vino',                ac:'230,70,105',  ac2:'255,170,120', d:'#8a2b3a', claro:'#ffc4d1', sobre:'#ffffff' },
+    { id:'toros',     nombre:'Toros',     sub:'Naranja',             ac:'255,140,30',  ac2:'255,205,90',  d:'#d45a00', claro:'#ffd9b0', sobre:'#1f0d00' },
+    { id:'estrellas', nombre:'Estrellas', sub:'Verde',               ac:'40,215,105',  ac2:'170,255,120', d:'#12904a', claro:'#c4ffd8', sobre:'#02170a' },
+    { id:'aguilas',   nombre:'Águilas',   sub:'Amarillo',            ac:'255,212,20',  ac2:'255,240,150', d:'#d49b00', claro:'#fff3b8', sobre:'#1f1800' },
+    { id:'leones',    nombre:'Leones',    sub:'Rojo',                ac:'255,60,78',   ac2:'255,150,150', d:'#b5121b', claro:'#ffc7cc', sobre:'#ffffff' },
+  ];
+  function ponerTema(id){
+    const t = TEMAS.find(x => x.id === id) || TEMAS.find(x => x.id === 'estrellas'), r = document.documentElement.style;
+    r.setProperty('--ac', t.ac); r.setProperty('--ac2', t.ac2); r.setProperty('--verde2', t.d);
+    r.setProperty('--claro', t.claro); r.setProperty('--sobre', t.sobre);
+    const meta = document.querySelector('meta[name=theme-color]'); if(meta) meta.content = '#0b1f8a';
+    document.querySelectorAll('[data-tema]').forEach(b => b.classList.toggle('activo', b.dataset.tema === t.id));
+    try{ localStorage.setItem('ba-tema', t.id); }catch(e){}
+  }
+  $('temas').innerHTML = TEMAS.map(t => `
+    <button class="tema" data-tema="${t.id}">
+      <span class="muestra" style="background:linear-gradient(135deg, rgb(${t.ac}), ${t.d}); box-shadow:0 0 10px rgba(${t.ac},0.6)"></span>
+      <span>${t.nombre}<small>${t.sub}</small></span>
+      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+    </button>`).join('');
+  $('temas').addEventListener('click', (e) => { const b = e.target.closest('.tema'); if(b) ponerTema(b.dataset.tema); });
+  const abrir = () => document.body.classList.add('menu-abierto');
+  const cerrar = () => document.body.classList.remove('menu-abierto');
+  $('abrir-menu').addEventListener('click', abrir);
+  $('cerrar-menu').addEventListener('click', cerrar);
+  $('velo').addEventListener('click', cerrar);
+  let guardado = 'estrellas'; try{ guardado = localStorage.getItem('ba-tema') || 'estrellas'; }catch(e){}
+  ponerTema(guardado);
+
+  $('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('.tab'); if(!b) return;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('activo', x === b));
+    document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === b.dataset.vista));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  let torneoGuardado = 'invernal'; try{ torneoGuardado = localStorage.getItem('ba-torneo') || 'invernal'; }catch(e){}
+  ponerTorneo(torneoGuardado);
+</script>
+</body>
+</html>
