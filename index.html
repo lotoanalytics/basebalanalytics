@@ -237,6 +237,9 @@
       linear-gradient(145deg, var(--e1), var(--e2));
     box-shadow:0 0 12px var(--e1), inset 0 -3px 6px rgba(0,0,0,0.3)}
   .escudo svg{width:84%; height:84%; position:relative}
+  /* Escudo con imagen propia (prueba: Águilas) */
+  .escudo.foto{background:#fff}
+  .escudo.foto img{width:100%; height:100%; object-fit:contain; display:block; position:relative}
   .escudo.bandera::after{content:""; position:absolute; inset:0; border-radius:50%;
     background:radial-gradient(circle at 30% 24%, rgba(255,255,255,0.65) 0 6%, rgba(255,255,255,0.12) 24%, transparent 45%), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%)}
   .escudo.bandera{box-shadow:0 0 12px rgba(255,255,255,0.35)}
@@ -400,7 +403,7 @@
         GC: { nombre:'Gigantes',  c1:'#b03a52', c2:'#3a0d16', animal:'caballo' },
         TE: { nombre:'Toros',     c1:'#ff9a2e', c2:'#b84400', animal:'toro', osc:'#7a2c00' },
         EO: { nombre:'Estrellas', c1:'#22c86a', c2:'#0b4d27', animal:'elefante' },
-        AC: { nombre:'Águilas',   c1:'#ffd21f', c2:'#a87b00', animal:'aguila', osc:'#6b4c00' },
+        AC: { nombre:'Águilas',   c1:'#ffd21f', c2:'#a87b00', animal:'aguila', osc:'#6b4c00', img:'escudos/aguilas.webp' },  // PRUEBA: imagen del dueño
         LE: { nombre:'Leones',    c1:'#ff3a4a', c2:'#7a0d16', animal:'leon' },
       },
       // "alBate": 'v' = visitante, 'c' = casa. "bases": [1ra, 2da, 3ra]
@@ -477,6 +480,7 @@
   const $ = (id) => document.getElementById(id);
   const escudo = (k) => { const t = EQUIPOS[k];
     if(t.bandera) return `<span class="escudo bandera" style="background:${t.bandera}" aria-hidden="true"></span>`;
+    if(t.img) return `<span class="escudo foto" style="--e1:${t.c1}; --e2:${t.c2}" aria-hidden="true"><img src="${t.img}" alt="" loading="lazy"></span>`;
     if(t.animal) return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:${t.osc || t.c2}" aria-hidden="true"><svg viewBox="0 0 64 64">${ANIMALES[t.animal]}</svg></span>`;
     return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:#fff; font:800 .62rem 'Exo 2', sans-serif">${k}</span>`; };
   const eq = (k, conNombre=true, der=false) => der

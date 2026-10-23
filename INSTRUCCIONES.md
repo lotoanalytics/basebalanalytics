@@ -31,6 +31,10 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Equipos LIDOM con **animales propios** dibujados por nosotros (objeto `ANIMALES`, en bola brillante con el color del equipo): Tigres = tigre rugiendo (azul), Gigantes = caballo (vino), Toros = toro con argolla (naranja), Estrellas = elefante con estrella (verde), Águilas = águila (amarillo), Leones = león rugiendo (rojo). Estilo **clásico de emblema deportivo**: cabezas de perfil mirando a la derecha, blancas, con cortes angulares y sombras en facetas (dibujo en cuadro de 64×64). El dueño rechazó el estilo caricatura/gatico: no volver a caras de frente redonditas. Son dibujos originales, **no** los logos oficiales.
 - Los datos están en listas al principio del `<script>` (EQUIPOS, JUEGO_HOY, ANTERIORES, POSICIONES, CALENDARIO, RESULTADOS), listos para que un robot los llene.
 
+## Escudos con imagen (prueba)
+- 23-oct-2026: **Águilas** usa como prueba una imagen hecha por el dueño (águila blanco y negro con aro dorado y bate amarillo), archivo **`escudos/aguilas.webp`** en el repo (256 px). En el código: `img:'escudos/aguilas.webp'` en el equipo AC; si un equipo tiene `img`, se muestra la imagen sobre fondo blanco en vez del animal dibujado. Los demás equipos siguen con los animales dibujados. Si al dueño le gusta, se harán imágenes así para los otros equipos.
+- El proyecto de Claude solo guarda texto: las imágenes viven en el repo de GitHub.
+
 ## Menú ☰: torneos y colores
 - El ☰ abre un menú lateral. En este orden: **Torneos** (arriba, lo principal), **Colores del diseño** y "Volver a LotoAnalytics".
 - **Torneos** (como en la app Pelota Invernal): **Pelota Invernal** (LIDOM), **Serie del Caribe** y **Clásico Mundial**. Al escoger uno cambian el lema y las 4 pestañas. Se recuerda en el teléfono (`localStorage`, clave `ba-torneo`).
@@ -75,3 +79,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 22-oct-2026: se sube el proyecto al repo de GitHub `lotoanalytics/basebalanalytics` (primer commit `1cf7639`).
 - 23-oct-2026: publicada en Vercel como proyecto aparte `baseball-analytics` → https://baseball-analytics-lilac.vercel.app (se publica sola con cada push a `main`).
 - 23-oct-2026: creada la base aparte en Supabase (`baseball-analytics`, ref `fehvnwwzdygjsxsjzxlu`) con sus tablas, torneos y equipos.
+- 23-oct-2026: prueba con la imagen propia del dueño como escudo de Águilas (`escudos/aguilas.webp`).
