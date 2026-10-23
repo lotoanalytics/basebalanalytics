@@ -295,7 +295,10 @@ function filaEnVivo(j) {
     bolas: Math.min(3, Number(j.balls) || 0),
     strikes: Math.min(2, Number(j.strikes) || 0),
     outs: Math.min(3, Number(j.outs) || 0),
-    base_codigo: j.base == null ? null : Number(j.base), // primera/segunda/tercera: cuando se descifre "base"
+    base_codigo: j.base == null ? null : Number(j.base),
+    // Bases ocupadas según el código (comprobado 23-oct: 1 vacías, 2 primera, 6 primera y tercera, 8 llenas; 4 y 5 por confirmar)
+    ...(() => { const m = { 1: [0,0,0], 2: [1,0,0], 3: [0,1,0], 6: [1,0,1], 7: [0,1,1], 8: [1,1,1] }[Number(j.base)] || [0,0,0];
+      return { primera: !!m[0], segunda: !!m[1], tercera: !!m[2] }; })(),
     bateador: vacioANull(j.atBat),
     lanzador: vacioANull(bateaCasa ? j.awayTeam.pitcher : j.homeTeam.pitcher), // lanza el que NO batea
     ultima_jugada: vacioANull(j.lastPlayByPlay),
