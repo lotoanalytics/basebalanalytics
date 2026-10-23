@@ -2,11 +2,12 @@
 // Regla del dueño: TODO sale de la caché al instante (y se actualiza por detrás),
 // MENOS el juego en vivo / juegos de hoy, que siempre se busca primero en internet.
 // Si cambias una imagen SIN cambiarle el nombre, sube el número de VERSION.
-const VERSION = 'ba-v3';
+const VERSION = 'ba-v4';
 const BASE = [
   '/', '/index.html',
   '/fondo/estadio.webp',
   '/escudos/tigres.webp', '/escudos/leones.webp', '/escudos/aguilas.webp',
+  '/escudos/gigantes.webp', '/escudos/toros.webp', '/escudos/estrellas.webp',
 ];
 
 self.addEventListener('install', (e) => {

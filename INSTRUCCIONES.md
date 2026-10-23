@@ -43,9 +43,16 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Los datos están en listas al principio del `<script>` (EQUIPOS, JUEGO_HOY, ANTERIORES, POSICIONES, CALENDARIO, RESULTADOS), listos para que un robot los llene.
 
 ## Escudos con imagen (del dueño)
-- Desde el 23-oct-2026, **Tigres**, **Leones** y **Águilas** usan imágenes hechas por el dueño con IA (estilo neón, animal de perfil con dos bates cruzados y fondo de estadio): `escudos/tigres.webp`, `escudos/leones.webp`, `escudos/aguilas.webp` en el repo (256 px, recortadas un 10 % por cada lado para que el animal se vea más grande en el círculo).
-- La primera prueba de Águilas (águila blanco y negro con bate dorado) se **borró** y se cambió por la nueva amarilla.
-- En el código: si un equipo tiene `img`, se muestra la imagen (fondo oscuro, `object-fit: cover`) en vez del animal dibujado. **Gigantes, Toros y Estrellas** siguen con el animal dibujado hasta que el dueño mande sus imágenes en el mismo estilo.
+- Desde el 23-oct-2026 **los 6 equipos de LIDOM** usan imágenes hechas por el dueño con IA, en estilo neón: el animal o símbolo con dos bates cruzados y fondo de estadio.
+  - `escudos/tigres.webp`: tigre azul.
+  - `escudos/leones.webp`: león rojo.
+  - `escudos/aguilas.webp`: águila amarilla.
+  - `escudos/gigantes.webp`: caballo rojo.
+  - `escudos/toros.webp`: toro naranja con argolla.
+  - `escudos/estrellas.webp`: estrella verde de cristal.
+- Las imágenes miden 256 px y están recortadas un 10 % por cada lado.
+- En el código, si un equipo tiene `img`, se muestra la imagen (fondo oscuro, `object-fit: cover`). Los animales dibujados (`ANIMALES`) quedan solo de reserva.
+- Cada imagen nueva hay que ponerla en la lista `BASE` de `sw.js` y subir `VERSION`.
 - El proyecto de Claude solo guarda texto: las imágenes viven en el repo de GitHub.
 
 ## Caché (desde 23-oct-2026) — para que abra rápido
@@ -53,7 +60,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v3`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v4`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -122,3 +129,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: el dueño pide **cero inglés**: todo en español siempre, también los mensajes mientras se trabaja.
 - 23-oct-2026: hecho el robot de béisbol (copia del todo en uno de LotoAnalytics), probado en modo prueba sin errores. Columnas nuevas en Supabase: `juegos` (entrada_texto, carreras_mitad_*, lanzador_*, manual), `juego_en_vivo.base_codigo` y la tabla `corridas_robot`.
 - 23-oct-2026: el robot se guía por los horarios guardados (tablas nuevas `revisiones_robot` y `corridas_robot.plan`), tiene todas las protecciones del robot de LotoAnalytics y se activa siempre a mano. El análisis pasa a llamarse `ANALISIS-PN.md`.
+- 23-oct-2026: puestas las imágenes de Gigantes, Toros y Estrellas: ya los 6 equipos tienen su imagen neón.
