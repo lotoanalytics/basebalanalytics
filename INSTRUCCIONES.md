@@ -16,7 +16,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - `claude/tuanalytics-index.html` — la versión vieja multideporte (solo de referencia).
 - La imagen vieja `fondo-deportes.jpg` (bolas de varios deportes) ya **no se usa**. Está en GitHub, repo `lotoanalytics/lotoanalytics`, commit `d11aba5`, por si acaso.
 - **Repositorio de GitHub: `lotoanalytics/basebalanalytics`** (rama `main`). Ahí van `index.html` (la página), `INSTRUCCIONES.md` (copia de este documento) y `README.md`. Cada cambio en la página se sube también al repo, y se mantienen iguales el repo y el proyecto.
-- Dirección prevista cuando se publique: `https://lotoanalytics-mu.vercel.app/deportes/` (o la que decida el dueño).
+- **Publicada en Vercel** (23-oct-2026): proyecto **`baseball-analytics`**, aparte del proyecto `lotoanalytics` (misma cuenta de Vercel, despliegue diferente). Enlace: **https://baseball-analytics-lilac.vercel.app**. Está conectado al repo: cada push a `main` se publica solo.
 
 ## Diseño actual (Baseball Analytics)
 - **Estilo vivo, como LotoAnalytics** (desde 22-oct): fondo azul intenso con morado, estrellitas que brillan y pelotas/burbujas de luz que flotan en los bordes (sin imagen, todo con CSS). Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
@@ -49,7 +49,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 
 ## Pendiente
 - Todo son datos de ejemplo (copiados de las capturas del 22-oct). Falta escoger una fuente real de datos de LIDOM y el robot que los traiga; comparar opciones con precios antes de decidir.
-- Falta conectarla al menú ☰ de LotoAnalytics y publicarla.
+- Falta (si el dueño quiere) poner un enlace desde el menú ☰ de LotoAnalytics a la página publicada.
 
 ## Registro de decisiones
 - 11-oct-2026: nace la idea "Tuanalytics" multideporte con datos de ejemplo; se retira del repo hasta nuevo aviso.
@@ -60,3 +60,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 22-oct-2026: el dueño pide que se vea "más viva" como LotoAnalytics: fondo azul/morado con brillos y pelotas flotando, tarjetas con borde brillante, números en bolas brillantes y animales propios para cada equipo LIDOM.
 - 22-oct-2026: los animales se rehacen en estilo clásico/profesional de emblema (de perfil, angulares) porque los primeros parecían caricatura.
 - 22-oct-2026: se sube el proyecto al repo de GitHub `lotoanalytics/basebalanalytics` (primer commit `1cf7639`).
+- 23-oct-2026: publicada en Vercel como proyecto aparte `baseball-analytics` → https://baseball-analytics-lilac.vercel.app (se publica sola con cada push a `main`).
