@@ -15,6 +15,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - **`claude/baseball-analytics.html`** — la página ACTUAL. Un solo archivo HTML. Trabajar siempre sobre este.
 - `claude/tuanalytics-index.html` — la versión vieja multideporte (solo de referencia).
 - La imagen vieja `fondo-deportes.jpg` (bolas de varios deportes) ya **no se usa**. Está en GitHub, repo `lotoanalytics/lotoanalytics`, commit `d11aba5`, por si acaso.
+- **Repositorio de GitHub: `lotoanalytics/basebalanalytics`** (rama `main`). Ahí van `index.html` (la página), `INSTRUCCIONES.md` (copia de este documento) y `README.md`. Cada cambio en la página se sube también al repo, y se mantienen iguales el repo y el proyecto.
 - Dirección prevista cuando se publique: `https://lotoanalytics-mu.vercel.app/deportes/` (o la que decida el dueño).
 
 ## Diseño actual (Baseball Analytics)
@@ -58,3 +59,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 22-oct-2026: se agregan los **torneos** al menú (Pelota Invernal, Serie del Caribe, Clásico Mundial), arriba como parte principal. Se quita el color "Original"; por defecto sale Estrellas (verde).
 - 22-oct-2026: el dueño pide que se vea "más viva" como LotoAnalytics: fondo azul/morado con brillos y pelotas flotando, tarjetas con borde brillante, números en bolas brillantes y animales propios para cada equipo LIDOM.
 - 22-oct-2026: los animales se rehacen en estilo clásico/profesional de emblema (de perfil, angulares) porque los primeros parecían caricatura.
+- 22-oct-2026: se sube el proyecto al repo de GitHub `lotoanalytics/basebalanalytics` (primer commit `1cf7639`).
