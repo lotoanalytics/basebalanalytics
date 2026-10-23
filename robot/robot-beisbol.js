@@ -3,36 +3,66 @@
 // =====================================================================
 // Copia adaptada del robot "todo en uno" de LotoAnalytics
 // (lotoanalytics/lotoanalytics: robot/backend-todo-en-uno.js), enfocada en
-// pelotainvernal.com. Las ideas que se copiaron de ese robot:
+// la fuente PN (pelotainvernal.com). Ver ANALISIS-PN.md.
 //
-//  1. NO se le pide nada directo al servidor de la fuente: se abre su PÁGINA
-//     en un Chrome sin pantalla y se toman los datos que la página misma
-//     recibe. Luego se COMPRUEBA que coincidan con lo que se ve en pantalla.
-//     (En LotoAnalytics se descubrió que Conéctate —la misma empresa que hace
-//     pelotainvernal— da números falsos a quien le pide directo.)
-//  2. Imágenes, letras y estilos se bloquean: no hacen falta y así carga rápido.
-//  3. Límites de tiempo por página y un VIGILANTE de 3 minutos: si algo se
-//     pega, la corrida se termina sola sin gastar minutos de GitHub.
-//  4. Nunca se pisa un juego FINAL con una lectura peor, y nunca se toca un
-//     juego puesto a mano (columna "manual").
-//  5. Fechas y horas siempre en hora de República Dominicana.
+// SE ACTIVA SIEMPRE A MANO (desde el cron del dueño en cron-job.org, que
+// llama a GitHub). No tiene horario propio en GitHub: es el robot el que
+// decide, en cada corrida, QUÉ buscar según los HORARIOS que tiene guardados.
 //
-// Qué hace en cada corrida:
-//  - Para cada torneo activo (tabla "torneos", activo = true):
-//      * Calendario  -> /liga/<liga>/calendario  (próximos juegos y el de hoy)
-//      * Resultados  -> /liga/<liga>/resultados  (juegos terminados)
-//      * Posiciones  -> /liga/<liga>/tabla-de-posiciones (la tabla oficial)
-//  - Guarda en Supabase: juegos, juego_en_vivo, posiciones, corridas_robot.
-//  - Los datos de apuestas que trae la fuente (moneyline, handicap,
-//    over_under) y los logos oficiales NO se guardan nunca.
+// CÓMO DECIDE QUÉ BUSCAR (el "plan" de cada corrida):
+//  1. Primero mira la base (rápido y gratis, sin abrir el navegador).
+//  2. Si un torneo NO tiene horarios guardados, o su calendario se revisó
+//     hace más de 12 horas -> busca el CALENDARIO (y las posiciones).
+//  3. Si hay un juego que según su horario ya empezó o está por empezar
+//     (desde 15 min antes hasta 6 horas después) y no ha terminado
+//     -> busca CALENDARIO + RESULTADOS de ese torneo (ahí viene el en vivo
+//     y el final).
+//  4. Si un juego ya pasó su horario y todavía no aparece como final
+//     -> busca RESULTADOS.
+//  5. Si un juego se volvió FINAL en esta corrida -> busca POSICIONES.
+//  6. Si no le toca nada -> termina en segundos SIN abrir el navegador
+//     ("corrida casi gratis", igual que el robot de LotoAnalytics).
+//  Si la hora de un juego no es creíble (antes de las 10:00 a. m.; la fuente
+//  pone 5:00 a. m. cuando todavía no hay hora), se vigila de 12:00 p. m. a
+//  medianoche de ese día.
 //
-// Modo prueba: con SOLO_LEER=1 lee todo y muestra lo que guardaría, pero no
-// escribe nada en la base (sirve para probar sin las claves de Supabase).
+// PROTECCIONES (las mismas ideas del robot de LotoAnalytics):
+//  - Se lee desde la PÁGINA de la fuente, no directo de su servidor, y se
+//    COMPRUEBA que lo recibido sea igual a lo que se ve en pantalla.
+//  - puppeteer-extra + stealth si está instalado; si no carga, se sigue con
+//    Puppeteer normal (una mejora nunca puede tumbar lo que ya funciona).
+//  - Imágenes, letras, estilos y videos bloqueados (carga más rápido), y
+//    cada solicitud de red protegida con try/catch.
+//  - Límite por página (30 s), un reintento por página, límite de toda la
+//    corrida (2 min 30 s) y VIGILANTE de 3 min que termina la corrida sola.
+//  - El navegador se cierra sin esperar: si no cierra en 5 s, se mata.
+//  - Un juego FINAL nunca se pisa con una lectura peor; un juego puesto a
+//    mano (columna manual = true) nunca se toca.
+//  - Cada página se guarda por separado: si una falla, las demás siguen.
+//  - Fechas y horas siempre en hora de República Dominicana (UTC-4).
+//  - Nunca se guardan los datos de apuestas ni los logos oficiales.
+//
+// Variables (las pone el workflow):
+//  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY -> claves (secretos de GitHub)
+//  SOLO_LEER=1 -> modo prueba: lee y muestra, no guarda nada
+//  FORZAR=1    -> busca todo sin mirar los horarios (para probar)
 // =====================================================================
 
-const puppeteer = require('puppeteer');
+try { require('dotenv').config(); } catch (e) { /* dotenv es opcional */ }
+
+let puppeteer = require('puppeteer');
+try {
+  const puppeteerExtra = require('puppeteer-extra');
+  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  puppeteerExtra.use(StealthPlugin());
+  puppeteer = puppeteerExtra;
+  console.log('[robot] puppeteer-extra + stealth cargado.');
+} catch (err) {
+  console.warn('[robot] No se pudo cargar puppeteer-extra/stealth (' + err.message + '): se sigue con Puppeteer normal.');
+}
 
 const SOLO_LEER = process.env.SOLO_LEER === '1' || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY;
+const FORZAR = process.env.FORZAR === '1';
 let supabase = null;
 if (!SOLO_LEER) {
   const { createClient } = require('@supabase/supabase-js');
@@ -40,64 +70,172 @@ if (!SOLO_LEER) {
 }
 
 const BASE = 'https://pelotainvernal.com';
-// Nuestro torneo -> la dirección de ese torneo en pelotainvernal
-const LIGAS = {
-  invernal: 'dominicana-lidom',
-  caribe: 'serie-del-caribe',
-  clasico: 'clasico-mundial-beisbol',
-};
-const LIMITE_PAGINA_MS = 30 * 1000;
-const VIGILANTE_MS = 3 * 60 * 1000;
+// Nuestro torneo -> su dirección en la fuente
+const LIGAS = { invernal: 'dominicana-lidom', caribe: 'serie-del-caribe', clasico: 'clasico-mundial-beisbol' };
 
-// Estado de la fuente -> nuestro estado.  1 = programado, 6 = final, 7 = pospuesto.
-// Cualquier otro número = el juego está en curso (falta confirmar los códigos exactos).
+const LIMITE_PAGINA_MS = 30 * 1000;
+const LIMITE_CORRIDA_MS = 150 * 1000;
+const VIGILANTE_MS = 3 * 60 * 1000;
+const REFRESCAR_CALENDARIO_MS = 12 * 60 * 60 * 1000;   // calendario: cada 12 horas como mínimo
+const ANTES_DEL_JUEGO_MIN = 15;                        // se empieza a vigilar 15 min antes
+const DURACION_JUEGO_MIN = 6 * 60;                     // y hasta 6 horas después de la hora del juego
+const HORA_MINIMA_CREIBLE = 10;                        // antes de las 10:00 a. m. = hora por confirmar
+const INICIO_CORRIDA = Date.now();
+
+// ---------------------------------------------------------------------
+// Horas de República Dominicana (UTC-4 todo el año, sin horario de verano)
+// ---------------------------------------------------------------------
+const MS_RD = 4 * 60 * 60 * 1000;
+// "2026-10-23" + "19:15" (hora RD) -> momento exacto (milisegundos)
+function momentoRD(fecha, hora) {
+  const [y, m, d] = fecha.split('-').map(Number);
+  const [hh, mm] = (hora || '00:00').split(':').map(Number);
+  return Date.UTC(y, m - 1, d, hh, mm) + MS_RD;
+}
+function fechaRD(ms) { return new Date(ms - MS_RD).toISOString().slice(0, 10); }
+function horaRDtexto(ms) { return new Date(ms - MS_RD).toISOString().slice(11, 16); }
+
+// Ventana en la que hay que vigilar un juego, según su horario guardado
+function ventanaDelJuego(j) {
+  const h = parseInt(String(j.hora || '').slice(0, 2), 10);
+  if (!j.hora || isNaN(h) || h < HORA_MINIMA_CREIBLE) {
+    // Hora por confirmar: se vigila de 12:00 p. m. a medianoche de ese día
+    return { desde: momentoRD(j.fecha, '12:00'), hasta: momentoRD(j.fecha, '23:59') };
+  }
+  const inicio = momentoRD(j.fecha, String(j.hora).slice(0, 5));
+  return { desde: inicio - ANTES_DEL_JUEGO_MIN * 60000, hasta: inicio + DURACION_JUEGO_MIN * 60000 };
+}
+
+// ---------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------
 function estadoDesdeFuente(status) {
   if (status === 1) return 'programado';
   if (status === 6) return 'final';
   if (status === 7) return 'pospuesto';
-  return 'en_vivo';
+  return 'en_vivo'; // cualquier otro código = juego en curso
 }
-// Orden para no "retroceder": un juego final no vuelve a en vivo ni a programado.
 const ORDEN_ESTADO = { programado: 0, pospuesto: 1, en_vivo: 2, suspendido: 3, final: 4 };
-
 const texto = (v) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
 const vacioANull = (v) => (texto(v) === '' ? null : texto(v));
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+const quedaTiempo = () => Date.now() - INICIO_CORRIDA < LIMITE_CORRIDA_MS;
 
 // ---------------------------------------------------------------------
-// Abrir una página y quedarse con los datos que la página misma recibe
+// 1) EL PLAN: qué buscar en esta corrida, según los horarios guardados
+// ---------------------------------------------------------------------
+async function armarPlan() {
+  const plan = new Map(); // torneo -> { secciones: Set, motivos: [] }
+  const anotar = (t, seccion, motivo) => {
+    if (!plan.has(t)) plan.set(t, { secciones: new Set(), motivos: [] });
+    plan.get(t).secciones.add(seccion);
+    plan.get(t).motivos.push(motivo);
+  };
+
+  if (SOLO_LEER) { // sin base: se busca todo de Pelota Invernal
+    ['calendario', 'resultados', 'posiciones'].forEach((s) => anotar('invernal', s, 'modo prueba'));
+    return plan;
+  }
+
+  const { data: torneos, error } = await supabase.from('torneos').select('id').eq('activo', true).order('orden');
+  if (error) throw error;
+  const ids = (torneos || []).map((t) => t.id).filter((id) => LIGAS[id]);
+  if (FORZAR) {
+    ids.forEach((t) => ['calendario', 'resultados', 'posiciones'].forEach((s) => anotar(t, s, 'forzado a mano')));
+    return plan;
+  }
+
+  const ahora = Date.now();
+  const { data: revisiones } = await supabase.from('revisiones_robot').select('torneo_id, seccion, ultima');
+  const ultima = (t, s) => {
+    const r = (revisiones || []).find((x) => x.torneo_id === t && x.seccion === s);
+    return r ? new Date(r.ultima).getTime() : 0;
+  };
+  // Juegos que no han terminado, de ayer a mañana (en hora RD)
+  const ayer = fechaRD(ahora - 24 * 3600 * 1000), manana = fechaRD(ahora + 24 * 3600 * 1000);
+  const { data: pendientes, error: e2 } = await supabase.from('juegos')
+    .select('torneo_id, fecha, hora, visitante, casa, estado')
+    .in('estado', ['programado', 'en_vivo'])
+    .gte('fecha', ayer).lte('fecha', manana);
+  if (e2) throw e2;
+
+  for (const t of ids) {
+    // ¿Tiene horarios guardados? ¿Hace cuánto se revisó el calendario?
+    const { count } = await supabase.from('juegos').select('id', { count: 'exact', head: true }).eq('torneo_id', t);
+    if (!count) {
+      anotar(t, 'calendario', 'no tiene horarios guardados');
+      anotar(t, 'resultados', 'no tiene horarios guardados');
+      anotar(t, 'posiciones', 'no tiene horarios guardados');
+    } else if (ahora - ultima(t, 'calendario') > REFRESCAR_CALENDARIO_MS) {
+      anotar(t, 'calendario', 'el calendario se revisó hace más de 12 horas');
+      anotar(t, 'posiciones', 'revisión diaria');
+    }
+    for (const j of (pendientes || []).filter((x) => x.torneo_id === t)) {
+      const v = ventanaDelJuego(j);
+      const nombre = `${j.visitante}-${j.casa} ${j.fecha} ${String(j.hora || '').slice(0, 5)}`;
+      if (j.estado === 'en_vivo' || (ahora >= v.desde && ahora <= v.hasta)) {
+        anotar(t, 'calendario', `juego en su horario: ${nombre}`);
+        anotar(t, 'resultados', `juego en su horario: ${nombre}`);
+      } else if (ahora > v.hasta) {
+        anotar(t, 'resultados', `ya pasó su horario y no aparece final: ${nombre}`);
+      }
+    }
+  }
+  return plan;
+}
+
+// ---------------------------------------------------------------------
+// 2) LEER UNA PÁGINA (y quedarse con los datos que la página misma recibe)
 // ---------------------------------------------------------------------
 async function abrirPagina(browser, ruta, esperarDatos) {
   const page = await browser.newPage();
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36');
-  await page.setRequestInterception(true);
-  page.on('request', (req) => {
-    try {
-      const tipo = req.resourceType();
-      if (tipo === 'image' || tipo === 'stylesheet' || tipo === 'font' || tipo === 'media') req.abort();
-      else req.continue();
-    } catch (e) { /* la página ya se cerró: se ignora */ }
-  });
-  const url = BASE + ruta;
-  // La página pide sus juegos con un POST a su misma dirección (cuerpo "page=1")
-  const datos = esperarDatos
-    ? page.waitForResponse((r) => r.url() === url && r.request().method() === 'POST' && r.status() === 200, { timeout: LIMITE_PAGINA_MS })
-        .then((r) => r.json()).catch(() => null)
-    : Promise.resolve(null);
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: LIMITE_PAGINA_MS });
-  const json = await datos;
-  await new Promise((r) => setTimeout(r, 2500)); // que la página termine de pintar
-  const enPantalla = await page.evaluate(() => document.body ? document.body.innerText : '').catch(() => '');
-  return { page, json, enPantalla };
+  try {
+    await page.setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36');
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      try {
+        const tipo = req.resourceType();
+        if (tipo === 'image' || tipo === 'stylesheet' || tipo === 'font' || tipo === 'media') req.abort();
+        else req.continue();
+      } catch (e) { /* la página ya se cerró o navegó: se ignora esa solicitud */ }
+    });
+    const url = BASE + ruta;
+    // La página pide su lista de juegos con un POST a su misma dirección (cuerpo "page=1")
+    const datos = esperarDatos
+      ? page.waitForResponse((r) => r.url() === url && r.request().method() === 'POST' && r.status() === 200, { timeout: LIMITE_PAGINA_MS })
+          .then((r) => r.json()).catch(() => null)
+      : Promise.resolve(null);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: LIMITE_PAGINA_MS });
+    const json = await datos;
+    await esperar(2500); // que la página termine de pintar
+    const enPantalla = await page.evaluate(() => (document.body ? document.body.innerText : '')).catch(() => '');
+    return { page, json, enPantalla };
+  } catch (e) {
+    await page.close().catch(() => {});
+    throw e;
+  }
 }
 
-// ---------------------------------------------------------------------
+// Un reintento si la primera vez falla (página lenta, red, etc.)
+async function abrirConReintento(browser, ruta, esperarDatos) {
+  try {
+    const r = await abrirPagina(browser, ruta, esperarDatos);
+    if (!esperarDatos || Array.isArray(r.json)) return r;
+    await r.page.close().catch(() => {});
+    throw new Error('la página no recibió la lista de juegos');
+  } catch (e) {
+    if (!quedaTiempo()) throw e;
+    console.warn(`[robot] ${ruta}: ${e.message}. Se intenta otra vez en 3 s...`);
+    await esperar(3000);
+    return abrirPagina(browser, ruta, esperarDatos);
+  }
+}
+
 // Comprobación: lo recibido tiene que coincidir con lo que se ve en pantalla
-// ---------------------------------------------------------------------
-// En "Resultados" la pantalla muestra filas así:  "22-10-2026  Toros  6 - 7  Gigantes"
 function coincideConPantalla(juegos, enPantalla) {
   const pantalla = texto(enPantalla);
   const muestra = juegos.slice(0, 3);
-  if (!muestra.length) return true; // lista vacía: no hay nada que comprobar
+  if (!muestra.length) return true;
   return muestra.every((j) => {
     const marcador = `${j.awayTeam.runs} - ${j.homeTeam.runs}`;
     return pantalla.includes(texto(j.awayTeam.name)) && pantalla.includes(texto(j.homeTeam.name)) &&
@@ -106,17 +244,14 @@ function coincideConPantalla(juegos, enPantalla) {
 }
 
 // ---------------------------------------------------------------------
-// Convertir un juego de la fuente a nuestra tabla "juegos"
+// 3) CONVERTIR a nuestras tablas
 // ---------------------------------------------------------------------
 function filaJuego(torneoId, j) {
   const [fecha, horaCompleta] = String(j.date || '').split(' ');
   const estado = estadoDesdeFuente(j.status);
   const fila = {
-    torneo_id: torneoId,
-    fuente: 'pelotainvernal',
-    fuente_id: String(j.id),
-    fecha,
-    hora: horaCompleta ? horaCompleta.slice(0, 5) : null,
+    torneo_id: torneoId, fuente: 'pelotainvernal', fuente_id: String(j.id),
+    fecha, hora: horaCompleta ? horaCompleta.slice(0, 5) : null,
     visitante: texto(j.awayTeam && j.awayTeam.abbreviation),
     casa: texto(j.homeTeam && j.homeTeam.abbreviation),
     estado,
@@ -134,11 +269,7 @@ function filaJuego(torneoId, j) {
     });
   }
   if (estado === 'final') {
-    Object.assign(fila, {
-      ganador: vacioANull(j.winningPitcher),
-      perdedor: vacioANull(j.losingPitcher),
-      salvamento: vacioANull(j.savingPitcher),
-    });
+    Object.assign(fila, { ganador: vacioANull(j.winningPitcher), perdedor: vacioANull(j.losingPitcher), salvamento: vacioANull(j.savingPitcher) });
   }
   return fila;
 }
@@ -151,27 +282,24 @@ function filaEnVivo(j) {
     bolas: Math.min(3, Number(j.balls) || 0),
     strikes: Math.min(2, Number(j.strikes) || 0),
     outs: Math.min(3, Number(j.outs) || 0),
-    base_codigo: j.base == null ? null : Number(j.base),
-    // primera / segunda / tercera: se llenan cuando se descifre "base"
+    base_codigo: j.base == null ? null : Number(j.base), // primera/segunda/tercera: cuando se descifre "base"
     bateador: vacioANull(j.atBat),
-    lanzador: vacioANull(bateaCasa ? j.awayTeam.pitcher : j.homeTeam.pitcher), // lanza el equipo que NO batea
+    lanzador: vacioANull(bateaCasa ? j.awayTeam.pitcher : j.homeTeam.pitcher), // lanza el que NO batea
     ultima_jugada: vacioANull(j.lastPlayByPlay),
     nota: vacioANull(j.gameAlert),
   };
 }
 
 // ---------------------------------------------------------------------
-// Guardar en Supabase (con las protecciones)
+// 4) GUARDAR (con las protecciones)
 // ---------------------------------------------------------------------
 async function asegurarEquipos(torneoId, juegos) {
   const vistos = new Map();
-  for (const j of juegos) for (const e of [j.awayTeam, j.homeTeam]) {
-    if (e && e.abbreviation) vistos.set(texto(e.abbreviation), texto(e.name));
-  }
+  for (const j of juegos) for (const e of [j.awayTeam, j.homeTeam]) if (e && e.abbreviation) vistos.set(texto(e.abbreviation), texto(e.name));
   if (SOLO_LEER || !vistos.size) return;
   const { data } = await supabase.from('equipos').select('codigo').eq('torneo_id', torneoId);
   const yaEstan = new Set((data || []).map((e) => e.codigo));
-  const nuevos = [...vistos].filter(([codigo]) => !yaEstan.has(codigo))
+  const nuevos = [...vistos].filter(([c]) => !yaEstan.has(c))
     .map(([codigo, nombre]) => ({ torneo_id: torneoId, codigo, nombre, bandera: torneoId === 'invernal' ? null : codigo }));
   if (nuevos.length) {
     const { error } = await supabase.from('equipos').insert(nuevos);
@@ -180,23 +308,23 @@ async function asegurarEquipos(torneoId, juegos) {
   }
 }
 
+// Devuelve true si el juego pasó a FINAL en esta corrida
 async function guardarJuego(torneoId, j, cuenta) {
   const fila = filaJuego(torneoId, j);
-  if (!fila.fecha || !fila.visitante || !fila.casa) return;
+  if (!fila.fecha || !fila.visitante || !fila.casa) return false;
   if (SOLO_LEER) {
     console.log(`  (prueba) ${fila.fecha} ${fila.hora || ''} ${fila.visitante} ${fila.carreras_visitante ?? ''} - ${fila.carreras_casa ?? ''} ${fila.casa} · ${fila.estado}${fila.entrada_texto ? ' · ' + fila.entrada_texto : ''}`);
     cuenta.guardados++;
-    return;
+    return false;
   }
   const { data: anterior } = await supabase.from('juegos').select('id, estado, manual')
     .eq('torneo_id', torneoId).eq('fuente_id', fila.fuente_id).maybeSingle();
-  if (anterior && anterior.manual) return; // puesto a mano: no se toca
+  if (anterior && anterior.manual) return false; // puesto a mano: no se toca
   if (anterior && ORDEN_ESTADO[anterior.estado] > ORDEN_ESTADO[fila.estado] && fila.estado !== 'pospuesto') {
     console.warn(`[robot] Se descarta ${fila.visitante}-${fila.casa} ${fila.fecha}: ya estaba "${anterior.estado}" y ahora dice "${fila.estado}".`);
-    return;
+    return false;
   }
-  const { data: guardado, error } = await supabase.from('juegos')
-    .upsert(fila, { onConflict: 'torneo_id,fuente_id' }).select('id').single();
+  const { data: guardado, error } = await supabase.from('juegos').upsert(fila, { onConflict: 'torneo_id,fuente_id' }).select('id').single();
   if (error) throw error;
   cuenta.guardados++;
   if (fila.estado === 'en_vivo') {
@@ -205,9 +333,11 @@ async function guardarJuego(torneoId, j, cuenta) {
   } else if (anterior && anterior.estado === 'en_vivo') {
     await supabase.from('juego_en_vivo').delete().eq('juego_id', guardado.id); // ya no está en vivo
   }
+  const pasoAFinal = fila.estado === 'final' && (!anterior || anterior.estado !== 'final');
+  if (pasoAFinal) console.log(`[robot] FINAL: ${fila.visitante} ${fila.carreras_visitante} - ${fila.carreras_casa} ${fila.casa} (${fila.fecha})`);
+  return pasoAFinal;
 }
 
-// Tabla de posiciones: se lee de la tabla que la página trae escrita
 async function leerPosiciones(page) {
   return page.evaluate(() => {
     const tabla = [...document.querySelectorAll('table')].find((t) => /PCT/.test(t.innerText));
@@ -221,57 +351,63 @@ async function leerPosiciones(page) {
 
 async function guardarPosiciones(torneoId, filas) {
   if (!filas.length) return;
-  if (SOLO_LEER) {
-    console.log('  (prueba) posiciones: ' + filas.map((f) => `${f.codigo} ${f.ganados}-${f.perdidos}`).join(' · '));
-    return;
-  }
+  if (SOLO_LEER) { console.log('  (prueba) posiciones: ' + filas.map((f) => `${f.codigo} ${f.ganados}-${f.perdidos}`).join(' · ')); return; }
   const { data } = await supabase.from('equipos').select('codigo').eq('torneo_id', torneoId);
   const conocidos = new Set((data || []).map((e) => e.codigo));
-  const validas = filas.filter((f) => conocidos.has(f.codigo))
-    .map((f) => ({ torneo_id: torneoId, equipo: f.codigo, ganados: f.ganados, perdidos: f.perdidos }));
+  const validas = filas.filter((f) => conocidos.has(f.codigo)).map((f) => ({ torneo_id: torneoId, equipo: f.codigo, ganados: f.ganados, perdidos: f.perdidos }));
   if (validas.length) {
     const { error } = await supabase.from('posiciones').upsert(validas, { onConflict: 'torneo_id,equipo' });
     if (error) throw error;
   }
 }
 
-// ---------------------------------------------------------------------
-// Corrida completa
-// ---------------------------------------------------------------------
-async function torneosActivos() {
-  if (SOLO_LEER) return ['invernal'];
-  const { data, error } = await supabase.from('torneos').select('id').eq('activo', true).order('orden');
-  if (error) throw error;
-  return (data || []).map((t) => t.id).filter((id) => LIGAS[id]);
+async function marcarRevision(torneoId, seccion) {
+  if (SOLO_LEER) return;
+  await supabase.from('revisiones_robot').upsert({ torneo_id: torneoId, seccion, ultima: new Date().toISOString() }, { onConflict: 'torneo_id,seccion' });
 }
 
+// ---------------------------------------------------------------------
+// 5) LA CORRIDA
+// ---------------------------------------------------------------------
 async function correr() {
   const cuenta = { guardados: 0, errores: 0, notas: [] };
+  console.log(`[robot] Hora RD: ${fechaRD(Date.now())} ${horaRDtexto(Date.now())}${SOLO_LEER ? ' · MODO PRUEBA (no se guarda nada)' : ''}${FORZAR ? ' · FORZADO' : ''}`);
+
+  const plan = await armarPlan();
+  const textoPlan = [...plan].map(([t, p]) => `${t}: ${[...p.secciones].join(', ')} (${[...new Set(p.motivos)].join('; ')})`).join(' | ');
   let idCorrida = null;
   if (!SOLO_LEER) {
-    const { data } = await supabase.from('corridas_robot').insert({}).select('id').single();
+    const { data } = await supabase.from('corridas_robot').insert({ plan: textoPlan || 'nada que buscar' }).select('id').single();
     idCorrida = data && data.id;
-  } else {
-    console.log('[robot] MODO PRUEBA: solo se lee, no se guarda nada en la base.');
   }
+
+  if (!plan.size) {
+    console.log('[robot] Nada que buscar ahora según los horarios: no se abre el navegador. Corrida casi gratis.');
+    if (idCorrida) await supabase.from('corridas_robot').update({ fin: new Date().toISOString() }).eq('id', idCorrida);
+    return;
+  }
+  console.log('[robot] Plan: ' + textoPlan);
 
   const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   try {
-    for (const torneoId of await torneosActivos()) {
+    for (const [torneoId, { secciones }] of plan) {
       const liga = LIGAS[torneoId];
+      let huboFinal = false;
       for (const seccion of ['calendario', 'resultados']) {
+        if (!secciones.has(seccion)) continue;
+        if (!quedaTiempo()) { cuenta.notas.push(`${torneoId} ${seccion}: sin tiempo, queda para la próxima corrida`); continue; }
         let page = null;
         try {
-          const r = await abrirPagina(browser, `/liga/${liga}/${seccion}`, true);
+          const r = await abrirConReintento(browser, `/liga/${liga}/${seccion}`, true);
           page = r.page;
-          if (!Array.isArray(r.json)) throw new Error('la página no recibió la lista de juegos');
           if (!coincideConPantalla(r.json, r.enPantalla)) throw new Error('lo recibido NO coincide con lo que muestra la página; no se usa');
           console.log(`[robot] ${torneoId} · ${seccion}: ${r.json.length} juego(s) leídos y comprobados.`);
           await asegurarEquipos(torneoId, r.json);
           for (const j of r.json) {
-            try { await guardarJuego(torneoId, j, cuenta); }
-            catch (e) { cuenta.errores++; cuenta.notas.push(`${torneoId} juego ${j.id}: ${e.message}`); console.error('[robot] Error guardando juego ' + j.id + ': ' + e.message); }
+            try { if (await guardarJuego(torneoId, j, cuenta)) huboFinal = true; }
+            catch (e) { cuenta.errores++; cuenta.notas.push(`${torneoId} juego ${j.id}: ${e.message}`); console.error(`[robot] Error guardando juego ${j.id}: ${e.message}`); }
           }
+          await marcarRevision(torneoId, seccion);
         } catch (e) {
           cuenta.errores++; cuenta.notas.push(`${torneoId} ${seccion}: ${e.message}`);
           console.error(`[robot] ${torneoId} · ${seccion}: ${e.message}`);
@@ -279,24 +415,27 @@ async function correr() {
           if (page) await page.close().catch(() => {});
         }
       }
-      // Posiciones
-      let page = null;
-      try {
-        const r = await abrirPagina(browser, `/liga/${liga}/tabla-de-posiciones`, false);
-        page = r.page;
-        const filas = await leerPosiciones(page);
-        console.log(`[robot] ${torneoId} · posiciones: ${filas.length} equipo(s).`);
-        await guardarPosiciones(torneoId, filas);
-      } catch (e) {
-        cuenta.errores++; cuenta.notas.push(`${torneoId} posiciones: ${e.message}`);
-        console.error(`[robot] ${torneoId} · posiciones: ${e.message}`);
-      } finally {
-        if (page) await page.close().catch(() => {});
+      // Posiciones: si tocaba, o si algún juego terminó en esta corrida
+      if ((secciones.has('posiciones') || huboFinal) && quedaTiempo()) {
+        let page = null;
+        try {
+          const r = await abrirConReintento(browser, `/liga/${liga}/tabla-de-posiciones`, false);
+          page = r.page;
+          const filas = await leerPosiciones(page);
+          console.log(`[robot] ${torneoId} · posiciones: ${filas.length} equipo(s)${huboFinal ? ' (porque terminó un juego)' : ''}.`);
+          await guardarPosiciones(torneoId, filas);
+          await marcarRevision(torneoId, 'posiciones');
+        } catch (e) {
+          cuenta.errores++; cuenta.notas.push(`${torneoId} posiciones: ${e.message}`);
+          console.error(`[robot] ${torneoId} · posiciones: ${e.message}`);
+        } finally {
+          if (page) await page.close().catch(() => {});
+        }
       }
     }
   } finally {
     // Cerrar sin quedarse esperando: si no cierra en 5 s, se mata el proceso
-    await Promise.race([browser.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
+    await Promise.race([browser.close().catch(() => {}), esperar(5000)]);
     try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {}
   }
 
@@ -309,9 +448,9 @@ async function correr() {
   console.log(`[robot] Terminado. Juegos guardados: ${cuenta.guardados} · Errores: ${cuenta.errores}`);
 }
 
-// VIGILANTE: si la corrida se pega más de 3 minutos, se termina sola.
+// VIGILANTE: si la corrida pasa de 3 minutos, se termina sola (lo guardado queda guardado).
 setTimeout(() => {
-  console.error('[robot] La corrida pasó de 3 minutos: se termina. Lo ya guardado queda guardado.');
+  console.error('[robot] La corrida pasó de 3 minutos: se termina para no gastar minutos. Lo ya guardado queda guardado.');
   process.exit(0);
 }, VIGILANTE_MS).unref();
 

@@ -1,4 +1,4 @@
-# Análisis de pelotainvernal.com (para el robot de Baseball Analytics)
+# Análisis PN: la fuente pelotainvernal.com (para el robot de Baseball Analytics)
 
 Revisado el 23-oct-2026 (con el robot explorador `robot/explorar-pelotainvernal.js`). **Léelo antes de programar el robot.**
 
@@ -173,6 +173,36 @@ MLB publica en JSON los datos de las ligas invernales, **LIDOM incluida**. Lo co
 - **Para que guarde de verdad faltan dos cosas:**
   1. Poner en el repo los secretos `SUPABASE_URL` (`https://fehvnwwzdygjsxsjzxlu.supabase.co`) y `SUPABASE_SERVICE_ROLE_KEY` (la clave secreta del proyecto `baseball-analytics` en Supabase).
   2. Programar en cron-job.org las llamadas a `workflow_dispatch`: una vez al día en la mañana, y cada 5 minutos de 4:00 p. m. a 1:00 a. m. hora RD.
+
+## 6b. Cómo decide el robot qué buscar (por los horarios), desde el 23-oct-2026
+
+**El robot se activa siempre a mano.** Lo llama el cron del dueño en cron-job.org, o se corre con el botón de Actions; GitHub no tiene horario propio para él. En cada corrida, **primero mira los horarios guardados en la base** y arma su "plan":
+
+| Situación | Qué busca |
+|---|---|
+| El torneo no tiene horarios guardados | Calendario + resultados + posiciones |
+| El calendario se revisó hace más de 12 horas | Calendario + posiciones |
+| Un juego está en su horario: desde 15 min antes hasta 6 horas después, o ya está en vivo | Calendario + resultados (ahí vienen el en vivo y el final) |
+| Un juego ya pasó su horario y no aparece final | Resultados |
+| Un juego terminó en esta corrida | Posiciones |
+| No le toca nada | **No abre el navegador** y termina en segundos |
+
+- **Hora no creíble:** si la hora de un juego es antes de las 10:00 a. m. (la fuente pone 5:00 a. m. cuando aún no hay hora), se vigila de 12:00 p. m. a medianoche de ese día.
+- **Dónde se anota:**
+  - La última revisión de cada página va en la tabla `revisiones_robot`.
+  - Lo que decidió y por qué va en `corridas_robot.plan`.
+- **Para probar:** `forzar = 1` busca todo sin mirar los horarios, y `solo_leer = 1` no guarda nada.
+- **Lo que dijo el robot** en la última corrida queda siempre en la rama `exploracion`, archivo `registro/ultima-corrida.txt`.
+- **Protecciones, copiadas del robot de LotoAnalytics:**
+  - puppeteer-extra + stealth, y si no cargan, Puppeteer normal.
+  - Imágenes, letras y estilos bloqueados.
+  - 30 s por página y un reintento.
+  - Límite de 2 min 30 s para toda la corrida y vigilante de 3 min.
+  - Si el navegador no cierra en 5 s, se mata.
+  - Nunca se pisa un juego final ni uno puesto a mano.
+  - Si una página falla, las demás siguen.
+  - Nunca dos corridas a la vez (`concurrency`).
+  - Caché de las librerías y de Chrome.
 
 ## 7. Pendientes
 

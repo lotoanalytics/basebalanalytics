@@ -1,19 +1,24 @@
 name: Robot de béisbol
 
-# Lee pelotainvernal.com (calendario, resultados, posiciones y juego en vivo)
-# y lo guarda en Supabase. Igual que en LotoAnalytics, NO se programa con
-# "schedule" (GitHub atrasa esos horarios): se manda a correr desde
-# cron-job.org llamando a la API de GitHub (workflow_dispatch), o a mano
-# desde la pestaña Actions.
+# Lee la fuente PN (calendario, resultados, posiciones y juego en vivo) y lo
+# guarda en Supabase. Ver ANALISIS-PN.md.
 #
-# Horarios sugeridos para cron-job.org (hora RD):
-#   - Una vez al día, 10:00 AM: calendario y posiciones.
-#   - De 4:00 PM a 1:00 AM: cada 5 minutos (juegos en vivo y resultados).
+# SE ACTIVA SIEMPRE A MANO: desde el cron del dueño (cron-job.org llamando a
+# la API de GitHub, workflow_dispatch) o con el botón "Run workflow" de la
+# pestaña Actions. NO tiene "schedule" (GitHub atrasa esos horarios).
+#
+# No importa cada cuánto lo llame el cron: el robot mismo mira los HORARIOS
+# guardados en la base y decide qué buscar. Si no le toca nada, termina en
+# segundos sin abrir el navegador.
 on:
   workflow_dispatch:
     inputs:
       solo_leer:
         description: "Modo prueba: 1 = solo leer y mostrar, no guardar nada"
+        required: false
+        default: "0"
+      forzar:
+        description: "1 = buscar todo sin mirar los horarios"
         required: false
         default: "0"
 
@@ -45,15 +50,16 @@ jobs:
           path: |
             node_modules
             ~/.cache/puppeteer
-          key: ${{ runner.os }}-node22-robot-beisbol-v1
+          key: ${{ runner.os }}-node22-robot-beisbol-v2
 
       - name: Instalar librerías
         run: |
           if [ ! -f package.json ]; then npm init -y > /dev/null; fi
-          if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ] && [ -d node_modules/puppeteer ] && [ -d node_modules/@supabase/supabase-js ]; then
+          # Las mismas librerías del robot de LotoAnalytics (stealth para disimular el navegador)
+          if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ] && [ -d node_modules/puppeteer ] && [ -d node_modules/@supabase/supabase-js ] && [ -d node_modules/puppeteer-extra-plugin-stealth ]; then
             echo "Librerías ya están en la caché: no se instalan otra vez."
           else
-            npm install puppeteer @supabase/supabase-js --no-audit --no-fund
+            npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth @supabase/supabase-js dotenv --no-audit --no-fund
           fi
 
       - name: Correr el robot
@@ -62,15 +68,16 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SOLO_LEER: ${{ github.event.inputs.solo_leer }}
+          FORZAR: ${{ github.event.inputs.forzar }}
         run: |
           mkdir -p registro
           node robot/robot-beisbol.js 2>&1 | tee registro/ultima-corrida.txt
           exit ${PIPESTATUS[0]}
 
-      # En modo prueba, lo que dijo el robot se guarda en la rama "exploracion"
+      # Lo que dijo el robot se guarda en la rama "exploracion"
       # (carpeta registro/) para poder revisarlo. No toca la rama main.
       - name: Guardar el registro de la prueba
-        if: always() && github.event.inputs.solo_leer == '1'
+        if: always()
         run: |
           git config user.name "robot-beisbol"
           git config user.email "robot@users.noreply.github.com"
