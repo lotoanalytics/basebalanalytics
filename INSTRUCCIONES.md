@@ -9,6 +9,7 @@
 - La app de Claude en GitHub (cuenta `lotoanalytics`) tiene acceso solo a esos dos repos.
 
 ## Cómo trabajar con el dueño
+- **CERO INGLÉS. Todo en español, siempre**: los mensajes al dueño, los avisos mientras se trabaja, los documentos, los comentarios del código, los mensajes de los commits y los nombres que se le muestran. Ni una frase en inglés.
 - Hablarle en español sencillo, sin tecnicismos.
 - El dueño explica qué cambiar, arreglar o estructurar, paso a paso. No adelantarse a hacer cambios que no pidió.
 - Después de cada decisión, actualizar este documento y guardar la versión nueva de la página en el proyecto.
@@ -115,3 +116,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: tarjetas de cristal del color del tema y diamante 3D con peloteritos del color del equipo al bate.
 - 23-oct-2026: análisis de pelotainvernal.com y de la API de MLB para el robot (`ANALISIS-pelotainvernal.md`).
 - 23-oct-2026: se revisó `probar-conectate.js` del repo de LotoAnalytics (solo lectura) y se hizo la copia `robot/explorar-pelotainvernal.js` en este repo. Regla: en otros repos solo se revisa; solo se cambia `basebalanalytics`.
+- 23-oct-2026: el dueño pide **cero inglés**: todo en español siempre, también los mensajes mientras se trabaja.
