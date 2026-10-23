@@ -82,7 +82,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - Datos de la base / en vivo (`*.supabase.co` o `/api/`) → **SIEMPRE de internet, nunca de la caché ni se guardan** (desde el 23-oct, por pedido del dueño).
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v8`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v10`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -169,4 +169,5 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: las bolas del marcador van con el color de cada equipo; el que gana lleva aro blanco y brillo.
 - 23-oct-2026: mini estadio al tocar el juego en vivo (tablero, campo, defensa, corredores, bateador y lanzador con su nombre).
 - 23-oct-2026: la página lee los datos REALES de la base (sin datos de ejemplo), se vuelve una app descargable con logo propio, y el menú tiene "Descargar la app" en vez de "Volver a LotoAnalytics".
-- 23-oct-2026: el juego en vivo nunca sale de la caché (siempre dato real de internet); la tarjeta dice "Dato de las …". Hecho el **robot vigilante** (`robot/vigilar.sh` + `.github/workflows/robot-vigilante.yml`): se dispara una vez y se queda encendido, corriendo el robot cada 5 min hasta la hora indicada (por defecto 00:00 RD; tope 5 h 40 min). Se detiene con "Cancel workflow" en Actions. Primera noche: códigos de status en vivo vistos = 2 y 3; base vacía = 1.
+- 23-oct-2026: el juego en vivo nunca sale de la caché (siempre dato real de internet); la tarjeta dice "Dato de las …". Hecho el **robot vigilante** (`robot/vigilar.sh` + `.github/workflows/robot-vigilante.yml`): se dispara una vez y se queda encendido, corriendo el robot cada 5 min hasta la hora indicada (por defecto 00:00 RD; tope 5 h 40 min). Se detiene con "Cancel workflow" en Actions. Primera noche: se descifraron los estados en vivo (2 y 3) y los **8 códigos de base**, que están en `ANALISIS-PN.md`.
+- 23-oct-2026 (noche): el robot vigilante pasa a **modo en vivo**: el Chrome queda abierto y revisa **cada 30 s** (resultados cada ~2 min; si se cae, se vuelve a encender solo). Código `base` descifrado: 1 vacías, 2 1ra, 3 2da, 4 3ra, 5 1ra-2da, 6 1ra-3ra, 7 2da-3ra, 8 llenas (`BASES_CODIGO` en la página y en el robot).
