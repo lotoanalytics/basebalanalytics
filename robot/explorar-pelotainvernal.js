@@ -41,12 +41,14 @@ async function explorar(browser, nombre, ruta) {
   cdp.on('Network.webSocketCreated', (e) => sockets.push({ url: e.url, mensajes: [] }));
   cdp.on('Network.webSocketFrameReceived', (e) => {
     const s = sockets[sockets.length - 1];
-    if (s && s.mensajes.length < 15) s.mensajes.push(String(e.response.payloadData).slice(0, 2000));
+    if (s && s.mensajes.length < 80) s.mensajes.push(String(e.response.payloadData).slice(0, 20000));
   });
 
   console.log('\n================ ' + nombre + '  ' + BASE + ruta);
   try { await page.goto(BASE + ruta, { waitUntil: 'networkidle2', timeout: 45000 }); } catch (e) { console.log('(tardó: ' + e.message + ')'); }
-  await new Promise((r) => setTimeout(r, 8000));
+  // En la portada se escucha el canal en vivo más tiempo (ESCUCHAR_SEGUNDOS, por defecto 120)
+  const espera = nombre === 'lidom-portada' ? Number(process.env.ESCUCHAR_SEGUNDOS || 120) * 1000 : 8000;
+  await new Promise((r) => setTimeout(r, espera));
   const texto = await page.evaluate(() => document.body.innerText).catch(() => '');
   const scripts = await page.evaluate(() => [...document.scripts].map((s) => s.src).filter(Boolean)).catch(() => []);
   // Enlaces a juegos y el HTML de la página (para ver cómo pinta el juego en vivo)
