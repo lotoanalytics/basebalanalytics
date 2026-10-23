@@ -30,7 +30,10 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - **El fondo no se mueve al deslizar** (23-oct): `.fondo` tiene alto fijo `100lvh` (el alto grande del teléfono, así no "brinca" cuando la barra del navegador sale o se esconde) y va en su propia capa (`translate3d`, `will-change`). Solo se mueven las tarjetas.
 - **Tarjetas de cristal del color escogido** (23-oct): fondo del color del tema transparente con desenfoque (`backdrop-filter: blur(14px)`), reflejo blanco arriba y borde brillante: verde cristal, rojo cristal, etc. Textos con sombrita para que se lean.
 - Resto del estilo vivo como LotoAnalytics (desde 22-oct): Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
-- **Números como bolas brillantes** (como los números de la lotería): carreras en el marcador y en Resultados. El que gana = bola del color del tema; el que pierde = bola azul.
+- **Números como bolas brillantes** (como los números de la lotería), en las carreras del marcador y de Resultados. Desde el 23-oct **cada bola lleva el COLOR DE SU EQUIPO**: rojo Leones, naranja Toros, amarillo Águilas, azul Tigres, verde Estrellas y vino Gigantes (función `bolaEquipo`, usa `c1`/`c2` del equipo).
+  - El que gana: aro blanco y brillo. El que pierde: su mismo color, sin aro ni brillo.
+  - En los equipos claros (amarillo, naranja) el número va oscuro.
+  - Los países, que no tienen color propio, usan la bola del color del tema.
 - Cabecera: botón ☰ (abre el menú), logo de pelota con barras + "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
 - Aviso amarillo: "Vista de prueba · los juegos y números son de ejemplo".
 - 4 pestañas arriba (como la app Pelota Invernal que el dueño mostró de modelo):
@@ -60,7 +63,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v4`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v5`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -130,3 +133,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: hecho el robot de béisbol (copia del todo en uno de LotoAnalytics), probado en modo prueba sin errores. Columnas nuevas en Supabase: `juegos` (entrada_texto, carreras_mitad_*, lanzador_*, manual), `juego_en_vivo.base_codigo` y la tabla `corridas_robot`.
 - 23-oct-2026: el robot se guía por los horarios guardados (tablas nuevas `revisiones_robot` y `corridas_robot.plan`), tiene todas las protecciones del robot de LotoAnalytics y se activa siempre a mano. El análisis pasa a llamarse `ANALISIS-PN.md`.
 - 23-oct-2026: puestas las imágenes de Gigantes, Toros y Estrellas: ya los 6 equipos tienen su imagen neón.
+- 23-oct-2026: las bolas del marcador van con el color de cada equipo; el que gana lleva aro blanco y brillo.
