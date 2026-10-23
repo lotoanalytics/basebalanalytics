@@ -47,7 +47,7 @@
 
   /* Pestañas */
   .tabs{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; background:var(--panel); border:1px solid var(--linea-azul);
-    border-radius:16px; padding:6px; margin-bottom:16px; position:sticky; top:8px; z-index:4; backdrop-filter:blur(6px)}
+    border-radius:16px; padding:6px; margin-bottom:16px; position:sticky; top:8px; z-index:4}
   .tab{border:0; background:transparent; color:var(--suave); font:600 .78rem 'Exo 2', system-ui, sans-serif; padding:10px 2px; border-radius:12px; cursor:pointer}
   .tab.activo{background:linear-gradient(180deg, var(--verde), var(--verde2)); color:var(--sobre); box-shadow:0 0 16px rgba(var(--ac),0.55)}
   button.btn-ic{cursor:pointer; font:inherit}
@@ -158,6 +158,10 @@
   body{background:#0a1450}
   /* Fondo: SOLO la imagen del estadio (sin estrellas ni pelotas) */
   .fondo{background:#0a1650 url('fondo/estadio.webp') center center / cover no-repeat}
+  /* Fondo quieto al deslizar: alto fijo (el más grande del teléfono) para que no "brinque"
+     cuando la barra del navegador aparece o se esconde, y en su propia capa para que corra fluido */
+  .fondo{inset:auto; top:0; left:0; width:100%; height:100vh; height:100lvh;
+    transform:translate3d(0,0,0); will-change:transform; backface-visibility:hidden; pointer-events:none}
   .fondo::after{content:none}
   /* Sombra en los textos que van directo sobre la imagen, para que se lean */
   .cabecera, .lema, .aviso-prueba, .titulo, .leyenda, .fecha, .nota{text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.75)}
@@ -185,7 +189,7 @@
     background:linear-gradient(90deg, rgb(var(--ac)) 0%, var(--claro) 50%, rgb(var(--ac2)) 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
     filter:drop-shadow(0 0 8px rgba(var(--ac),0.45))}
   .lema{color:#c9b8ff}
-  .tabs{background:rgba(8,18,70,0.72); border:1.5px solid rgba(255,255,255,0.10); box-shadow:0 6px 20px rgba(0,0,20,0.35)}
+  .tabs{background:rgba(8,18,70,0.88); border:1.5px solid rgba(255,255,255,0.10); box-shadow:0 6px 20px rgba(0,0,20,0.35)}
   .tab{color:#dfe6ff; text-transform:uppercase; letter-spacing:.05em; font-size:.7rem; font-weight:700}
   .tab.activo{background:linear-gradient(180deg, var(--claro) -40%, rgb(var(--ac)) 45%, var(--verde2) 100%);
     box-shadow:0 0 18px rgba(var(--ac),0.75), inset 0 1px 0 rgba(255,255,255,0.5)}
@@ -194,9 +198,9 @@
   .titulo svg{filter:drop-shadow(0 0 5px rgba(var(--ac),0.8))}
   .vivo{font-family:'Exo 2',sans-serif; font-weight:800}
 
-  .tarjeta{background:linear-gradient(160deg, rgba(var(--ac),0.20) 0%, rgba(10,22,80,0.78) 45%, rgba(8,16,60,0.82) 100%);
+  .tarjeta{background:linear-gradient(160deg, rgba(var(--ac),0.20) 0%, rgba(10,22,80,0.84) 45%, rgba(8,16,60,0.88) 100%);
     border:1.5px solid rgba(var(--ac),0.6); border-radius:18px;
-    box-shadow:0 0 16px rgba(var(--ac),0.30), inset 0 0 22px rgba(var(--ac),0.08); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px)}
+    box-shadow:0 0 16px rgba(var(--ac),0.30), inset 0 0 22px rgba(var(--ac),0.08)}
   .tarjeta.en-vivo{border-color:rgb(var(--ac)); box-shadow:0 0 26px rgba(var(--ac),0.55), inset 0 0 26px rgba(var(--ac),0.12)}
   .estado b{text-shadow:0 0 8px rgba(var(--ac),0.7)}
   .fecha{color:#dfe6ff}

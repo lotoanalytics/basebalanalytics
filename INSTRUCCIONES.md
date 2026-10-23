@@ -20,6 +20,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 
 ## Diseño actual (Baseball Analytics)
 - **Fondo (desde 23-oct-2026): SOLO la imagen del estadio** que mandó el dueño (`fondo/estadio.webp` en el repo), fija y cubriendo toda la pantalla. Se recortó para **quitar las personas** de abajo. El dueño pidió que en el fondo no haya nada más: se quitaron las estrellitas, los brillos y las pelotas flotantes. Los textos que van directo sobre la imagen llevan sombra negra para que se lean.
+- **El fondo no se mueve al deslizar** (23-oct): `.fondo` tiene alto fijo `100lvh` (el alto grande del teléfono, así no "brinca" cuando la barra del navegador sale o se esconde) y va en su propia capa (`translate3d`, `will-change`). Se quitaron los desenfoques (`backdrop-filter`) de tarjetas y pestañas porque hacían pesado el desplazamiento; en cambio las tarjetas son un poco más sólidas. Solo se mueven las tarjetas.
 - Resto del estilo vivo como LotoAnalytics (desde 22-oct): Tarjetas con borde brillante del color del tema. Títulos y nombre con letra **Audiowide** (la de LotoAnalytics); el resto Exo 2.
 - **Números como bolas brillantes** (como los números de la lotería): carreras en el marcador y en Resultados. El que gana = bola del color del tema; el que pierde = bola azul.
 - Cabecera: botón ☰ (abre el menú), logo de pelota con barras + "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
@@ -43,7 +44,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v1`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v2`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -96,3 +97,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: Tigres, Leones y Águilas con las imágenes neón del dueño; se borró la prueba anterior de Águilas.
 - 23-oct-2026: el fondo pasa a ser solo la imagen del estadio (sin personas, sin pelotas ni estrellas).
 - 23-oct-2026: caché con service worker (`sw.js`): todo desde caché, el en vivo siempre de internet primero.
+- 23-oct-2026: fondo quieto y desplazamiento fluido (sin brincos, sin desenfoques).
