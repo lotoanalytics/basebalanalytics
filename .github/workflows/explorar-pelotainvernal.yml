@@ -1,0 +1,35 @@
+name: Explorar pelotainvernal (solo lectura)
+
+# PRUEBA: abre pelotainvernal.com y anota de dónde saca el calendario,
+# los resultados y el juego en vivo. No toca la base de datos.
+# Se corre a mano desde la pestaña Actions (botón "Run workflow").
+on:
+  workflow_dispatch:
+
+jobs:
+  explorar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar archivos
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar librerías
+        run: |
+          if [ ! -f package.json ]; then npm init -y; fi
+          npm install puppeteer
+
+      - name: Explorar pelotainvernal
+        run: node robot/explorar-pelotainvernal.js
+
+      - name: Guardar lo que se leyó
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prueba-pelotainvernal
+          path: prueba-pelotainvernal/
+          if-no-files-found: ignore

@@ -1,0 +1,69 @@
+// EXPLORAR pelotainvernal.com — SOLO LEE. No escribe nada en Supabase.
+// Copia adaptada de robot/probar-conectate.js (repo lotoanalytics).
+// Abre cada página en un Chrome sin pantalla y anota TODOS los datos ocultos
+// que la página pide por internet (JSON, XHR/fetch y WebSocket), para saber
+// de dónde salen el calendario, los resultados y el juego en vivo.
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+
+const BASE = 'https://pelotainvernal.com';
+const PAGINAS = [
+  ['lidom-portada',     '/liga/dominicana-lidom'],
+  ['lidom-calendario',  '/liga/dominicana-lidom/calendario'],
+  ['lidom-resultados',  '/liga/dominicana-lidom/resultados'],
+  ['lidom-posiciones',  '/liga/dominicana-lidom/tabla-de-posiciones'],
+  ['caribe-resultados', '/liga/serie-del-caribe/resultados'],
+  ['inicio',            '/'],
+];
+const SALIDA = 'prueba-pelotainvernal';
+fs.mkdirSync(SALIDA, { recursive: true });
+const resumen = [];
+
+async function explorar(browser, nombre, ruta) {
+  const page = await browser.newPage();
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36');
+  const datos = [];
+  page.on('response', async (r) => {
+    const tipo = r.request().resourceType();
+    const ct = r.headers()['content-type'] || '';
+    if (!['xhr', 'fetch'].includes(tipo) && !/json/.test(ct)) return;
+    let texto = '';
+    try { texto = await r.text(); } catch (e) {}
+    datos.push({ metodo: r.request().method(), url: r.url(), estado: r.status(), tipo, contentType: ct,
+                 cuerpoPedido: r.request().postData() || null, largo: texto.length, muestra: texto.slice(0, 4000) });
+  });
+  // WebSockets (marcadores en vivo suelen llegar así)
+  const cdp = await page.target().createCDPSession();
+  await cdp.send('Network.enable');
+  const sockets = [];
+  cdp.on('Network.webSocketCreated', (e) => sockets.push({ url: e.url, mensajes: [] }));
+  cdp.on('Network.webSocketFrameReceived', (e) => {
+    const s = sockets[sockets.length - 1];
+    if (s && s.mensajes.length < 15) s.mensajes.push(String(e.response.payloadData).slice(0, 2000));
+  });
+
+  console.log('\n================ ' + nombre + '  ' + BASE + ruta);
+  try { await page.goto(BASE + ruta, { waitUntil: 'networkidle2', timeout: 45000 }); } catch (e) { console.log('(tardó: ' + e.message + ')'); }
+  await new Promise((r) => setTimeout(r, 8000));
+  const texto = await page.evaluate(() => document.body.innerText).catch(() => '');
+  const scripts = await page.evaluate(() => [...document.scripts].map((s) => s.src).filter(Boolean)).catch(() => []);
+
+  fs.writeFileSync(`${SALIDA}/${nombre}.json`, JSON.stringify({ url: BASE + ruta, scripts, datos, sockets, textoVisible: texto.slice(0, 6000) }, null, 2));
+  console.log('Scripts: ' + scripts.length + ' · Datos ocultos: ' + datos.length + ' · WebSockets: ' + sockets.length);
+  datos.forEach((d) => console.log('  ' + d.metodo + ' ' + d.estado + ' ' + d.url + ' (' + d.largo + ' letras)'));
+  sockets.forEach((s) => console.log('  WS ' + s.url + ' (' + s.mensajes.length + ' mensajes)'));
+  console.log('--- Texto visible (inicio): ' + texto.replace(/\s+/g, ' ').slice(0, 700));
+  resumen.push({ nombre, url: BASE + ruta, datos: datos.map((d) => d.metodo + ' ' + d.url), sockets: sockets.map((s) => s.url) });
+  await page.close();
+}
+
+(async () => {
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  try {
+    for (const [nombre, ruta] of PAGINAS) await explorar(browser, nombre, ruta);
+  } finally {
+    await browser.close();
+  }
+  fs.writeFileSync(`${SALIDA}/RESUMEN.json`, JSON.stringify(resumen, null, 2));
+  console.log('\nListo. No se guardó nada en la base de datos. Resultados en la carpeta ' + SALIDA + '/');
+})().catch((e) => { console.log('Error en la prueba (no afecta nada):', e.message); process.exit(0); });

@@ -2,6 +2,12 @@
 
 **Lee este documento al empezar cualquier chat de este proyecto.** Aquí se anota todo lo que el dueño decide. Cada cambio nuevo se agrega en "Registro de decisiones" con la fecha.
 
+## ⚠️ REGLA DE REPOSITORIOS (no se cambia sin hablarlo)
+- **`lotoanalytics/basebalanalytics`** → el repo de ESTE proyecto. **Es el único donde se hacen cambios** (commits, push).
+- **`lotoanalytics/lotoanalytics`** → repo principal de LotoAnalytics (privado). **SOLO SE REVISA, NO SE TOCA NADA**: ni commits, ni push, ni ramas, ni issues. Se clona para leer cuando el dueño hable de él (por ejemplo, para copiar una idea) y la copia adaptada se pone en `basebalanalytics`.
+- Cualquier otro repo que el dueño mencione: igual, **solo revisar**.
+- La app de Claude en GitHub (cuenta `lotoanalytics`) tiene acceso solo a esos dos repos.
+
 ## Cómo trabajar con el dueño
 - Hablarle en español sencillo, sin tecnicismos.
 - El dueño explica qué cambiar, arreglar o estructurar, paso a paso. No adelantarse a hacer cambios que no pidió.
@@ -81,7 +87,9 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 
 ## Robot de datos — análisis (23-oct-2026)
 - Ver **`ANALISIS-pelotainvernal.md`** (en el repo y en el proyecto): cómo está hecho pelotainvernal.com, qué significa cada columna (G, P, DIF, PCT, casa/ruta, cara a cara, C/H/E, B/S/O…), fórmulas, y la fuente encontrada: **API de estadísticas de MLB** (LIDOM = `leagueId 131`, `sportId 17`) con juego en vivo (entrada, conteo, bases, bateador, lanzador).
-- Pendiente: el dueño quiere que se revise un documento ("revisar / analizar / conéctate") de su repo de LotoAnalytics; Claude **no tiene acceso** a ese repo (solo a `basebalanalytics` y `Mixsury`). Hay que darle acceso a la app de Claude en GitHub o adjuntar el archivo.
+- Documento de referencia: **`robot/probar-conectate.js`** + `.github/workflows/probar-conectate.yml` del repo `lotoanalytics/lotoanalytics` (solo lectura). Es una prueba que abre una página en Chrome sin pantalla (Puppeteer) desde GitHub Actions y anota los datos ocultos (JSON) que la página pide. No escribe en la base.
+- Copia adaptada en este repo: **`robot/explorar-pelotainvernal.js`** + **`.github/workflows/explorar-pelotainvernal.yml`** ("Explorar pelotainvernal (solo lectura)"). Abre portada, calendario, resultados y posiciones de pelotainvernal.com y anota todo lo que pide por internet (JSON, XHR/fetch y WebSocket). Se corre a mano desde Actions; el resultado queda como archivo descargable `prueba-pelotainvernal`. No usa el plugin "stealth" (no hace falta para explorar).
+- Los robots de LotoAnalytics se disparan con `workflow_dispatch` desde cron-job.org (no con `schedule`, porque GitHub atrasa los cron). Seguir la misma idea para el robot de béisbol.
 
 ## Cuentas y límites gratis (revisado 23-oct-2026)
 - **Supabase (plan gratis):** máximo **2 proyectos activos** por persona. Hoy hay 1 (`lotoanalytics's Project`, ref `vrqzpuikwsopjpehusgp`). Desde el 23-oct ya hay 2: el de LotoAnalytics y **`baseball-analytics`** → se usaron los 2 proyectos gratis. Cada proyecto tiene sus **500 MB** de base de datos, pero el tráfico de salida (5 GB/mes), usuarios y almacenamiento se **comparten** entre los dos. Los proyectos gratis se pausan si pasan una semana sin uso.
@@ -106,3 +114,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: fondo quieto y desplazamiento fluido (sin brincos, sin desenfoques).
 - 23-oct-2026: tarjetas de cristal del color del tema y diamante 3D con peloteritos del color del equipo al bate.
 - 23-oct-2026: análisis de pelotainvernal.com y de la API de MLB para el robot (`ANALISIS-pelotainvernal.md`).
+- 23-oct-2026: se revisó `probar-conectate.js` del repo de LotoAnalytics (solo lectura) y se hizo la copia `robot/explorar-pelotainvernal.js` en este repo. Regla: en otros repos solo se revisa; solo se cambia `basebalanalytics`.
