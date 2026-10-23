@@ -265,6 +265,53 @@
   .tabla .pct{text-shadow:0 0 8px rgba(var(--ac),0.6)}
   .menu{background:linear-gradient(180deg, rgba(14,32,130,0.97), rgba(8,14,60,0.98))}
   .tema{background:rgba(10,24,90,0.65)}
+
+  /* ================= MINI ESTADIO (se abre al tocar el juego en vivo) ================= */
+  .tarjeta.en-vivo{cursor:pointer}
+  .toca-estadio{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px; padding:9px; border-radius:12px;
+    background:rgba(255,255,255,0.10); border:1px dashed rgba(255,255,255,0.35); font-weight:700; font-size:.82rem; letter-spacing:.04em;
+    animation:latido 2.4s ease-in-out infinite}
+  @keyframes latido{50%{background:rgba(var(--ac),0.25); border-color:rgb(var(--ac))}}
+  .estadio{position:fixed; inset:0; z-index:40; display:none; flex-direction:column; background:#030a1e; overflow-y:auto;
+    padding:calc(10px + env(safe-area-inset-top)) 12px calc(14px + env(safe-area-inset-bottom))}
+  .estadio.abierto{display:flex; animation:aparece .35s ease}
+  @keyframes aparece{from{opacity:0; transform:scale(.96)} to{opacity:1; transform:none}}
+  body.con-estadio{overflow:hidden}
+  .est-cab{display:flex; align-items:center; justify-content:space-between; max-width:560px; width:100%; margin:0 auto 8px}
+  .est-cab .vivo{margin:0}
+  .est-cab b{font-family:'Audiowide','Exo 2',sans-serif; font-weight:400; font-size:1rem; color:#fff}
+  .est-cerrar{width:40px; height:40px; border-radius:12px; border:1.5px solid rgba(var(--ac),.7); background:rgba(10,24,90,.7); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer}
+  .est-cerrar svg{width:20px; height:20px}
+  .est-caja{max-width:560px; width:100%; margin:0 auto}
+  /* Tablero tipo estadio */
+  .tablero{background:linear-gradient(180deg,#0b1020,#05070f); border:2px solid #2a3350; border-radius:14px; padding:10px 12px;
+    box-shadow:0 0 24px rgba(var(--ac),.25), inset 0 0 18px rgba(0,0,0,.8); font-family:'Orbitron','Exo 2',sans-serif}
+  .tablero-tit{display:flex; justify-content:space-between; align-items:center; color:#ffb340; font-size:.7rem; letter-spacing:.18em; margin-bottom:6px}
+  .tablero-tit span:last-child{color:#fff; letter-spacing:.06em; font-size:.8rem}
+  .tab-tabla{width:100%; border-collapse:collapse}
+  .tab-tabla th{color:#8fa0c8; font-size:.62rem; font-weight:700; padding:2px 0; text-align:center; width:40px}
+  .tab-tabla th:first-child{width:auto}
+  .tab-tabla td{text-align:center; font-weight:900; font-size:1.25rem; color:#ffd84a; text-shadow:0 0 8px rgba(255,200,40,.75); padding:3px 0}
+  .tab-tabla td:first-child{text-align:left; color:#fff; text-shadow:none; font-family:'Exo 2',sans-serif; font-size:.92rem; font-weight:700}
+  .tab-tabla td.c{color:#ff5a3c; text-shadow:0 0 9px rgba(255,80,40,.85)}
+  .tab-eq{display:flex; align-items:center; gap:8px}
+  .tab-eq .escudo{width:28px; height:28px}
+  .tab-eq .bateando{width:8px; height:8px; border-radius:50%; background:#ffd84a; box-shadow:0 0 8px #ffd84a}
+  .tab-luces{display:flex; justify-content:space-around; margin-top:6px; padding-top:6px; border-top:1px solid #1e2742}
+  .tab-luces div{display:flex; align-items:center; gap:5px; color:#8fa0c8; font-size:.7rem; font-weight:700}
+  .led{width:11px; height:11px; border-radius:50%; background:#1c2238; box-shadow:inset 0 0 3px #000}
+  .led.b{background:#3dff7a; box-shadow:0 0 8px #3dff7a} .led.s{background:#ffd84a; box-shadow:0 0 8px #ffd84a} .led.o{background:#ff4d5e; box-shadow:0 0 8px #ff4d5e}
+  /* Campo */
+  .campo{width:100%; height:auto; display:block; margin:8px 0; border-radius:16px; overflow:hidden; box-shadow:0 0 22px rgba(var(--ac),.2)}
+  .campo .respira{animation:respira 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:50% 100%}
+  .campo .respira.d1{animation-delay:.4s} .campo .respira.d2{animation-delay:.9s} .campo .respira.d3{animation-delay:1.3s}
+  @keyframes respira{50%{transform:translateY(-1.2px)}}
+  .campo .luz{animation:titila 3s ease-in-out infinite alternate}
+  @media (prefers-reduced-motion: reduce){ .campo .respira, .campo .luz, .toca-estadio, .estadio.abierto{animation:none} }
+  .est-info{background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:10px 12px; font-size:.86rem; line-height:1.6; color:#dfe6ff}
+  .est-info b{color:#fff}
+  .est-info .nota-juego{color:var(--amarillo)}
+  .est-pie{text-align:center; color:#8fa0c8; font-size:.72rem; margin-top:8px}
 </style>
 </head>
 <body>
@@ -273,6 +320,18 @@
 
 <!-- Menú ☰: escoger el torneo y los colores del diseño -->
 <div class="velo" id="velo"></div>
+
+<!-- Mini estadio: se abre al tocar la tarjeta del juego en vivo -->
+<div class="estadio" id="estadio" role="dialog" aria-modal="true" aria-label="Estadio en vivo">
+  <div class="est-cab">
+    <span class="vivo">EN VIVO</span>
+    <b id="est-entrada"></b>
+    <button class="est-cerrar" id="est-cerrar" aria-label="Cerrar estadio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="est-caja" id="est-caja"></div>
+</div>
 <aside class="menu" id="menu" aria-label="Menú">
   <div class="menu-cab">
     <b>Menú</b>
@@ -570,6 +629,138 @@
     </svg>`;
   }
 
+
+  // ===================== MINI ESTADIO =====================
+  // Se dibuja con los MISMOS datos del juego en vivo. Cuando el robot traiga
+  // datos nuevos y la página se vuelva a pintar, el estadio se actualiza solo.
+  let estadioAbierto = false;
+  // Peloterito escalado (más pequeño mientras más lejos esté en el campo)
+  const escalaPorY = (y) => 0.5 + Math.max(0, Math.min(1, (y - 95) / 215)) * 0.62;
+  function jugador(x, y, c1, c2, bate, extra){
+    const e = escalaPorY(y);
+    return `<g transform="translate(${x} ${y}) scale(${e.toFixed(2)})"><g class="respira ${extra || ''}">${peloterito(0, 0, c1, c2, bate)}</g></g>`;
+  }
+  // Etiqueta con el nombre encima de la cabeza
+  function etiqueta(x, y, nombre, color){
+    if(!nombre) return '';
+    const e = escalaPorY(y), t = String(nombre).slice(0, 22), ancho = Math.max(40, t.length * 5.4 + 14);
+    const top = y - 34 * e - 15;
+    return `<g><rect x="${(x - ancho / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${ancho.toFixed(1)}" height="14" rx="7" fill="rgba(3,10,30,0.82)" stroke="${color}" stroke-width="1.2"/>
+      <text x="${x}" y="${(top + 10).toFixed(1)}" text-anchor="middle" font-family="Exo 2, sans-serif" font-weight="800" font-size="8.6" fill="#fff">${t}</text>
+      <path d="M${x - 3} ${top + 14} L${x} ${top + 18} L${x + 3} ${top + 14} Z" fill="${color}"/></g>`;
+  }
+  function colorDe(k, respaldo){ const t = EQUIPOS[k] || {}; return { c1: t.c1 || respaldo[0], c2: t.c2 || respaldo[1] }; }
+
+  function campoEstadio(j){
+    const bateaK = j.alBate === 'v' ? j.v.eq : j.casa.eq, defiendeK = j.alBate === 'v' ? j.casa.eq : j.v.eq;
+    const B = colorDe(bateaK, ['#ffd21f', '#a87b00']), D = colorDe(defiendeK, ['#2e78ff', '#0b2a6e']);
+    const [b1, b2, b3] = j.bases;
+    const H = [180, 292], P1 = [258, 244], P2 = [180, 204], P3 = [102, 244];
+    const base = ([x, y], ocupada) => `<path d="M${x} ${y-4.5} L${x+8.5} ${y} L${x} ${y+4.5} L${x-8.5} ${y} Z" fill="${ocupada ? B.c1 : '#fff'}" stroke="#fff" stroke-width="${ocupada ? 1.2 : .6}" ${ocupada ? `style="filter:drop-shadow(0 0 5px ${B.c1})"` : ''}/>`;
+    // Defensa (9 posiciones); si hay corredor en la base, el defensor se corre un poco
+    const def = [
+      ['LF', 72, 150], ['CF', 180, 112], ['RF', 288, 150],
+      ['SS', 142, 206], ['2B', 220, 204], ['3B', b3 ? 92 : 100, 232], ['1B', b1 ? 268 : 262, 236],
+    ];
+    let cuerpos = '';
+    def.forEach(([, x, y], i) => { cuerpos += jugador(x, y, D.c1, D.c2, false, 'd' + (i % 4)); });
+    // Corredores en base (del equipo que batea)
+    if (b2) cuerpos += jugador(P2[0] + 10, P2[1] + 2, B.c1, B.c2, false, 'd2');
+    if (b3) cuerpos += jugador(P3[0] + 10, P3[1] + 2, B.c1, B.c2, false, 'd1');
+    if (b1) cuerpos += jugador(P1[0] - 10, P1[1] + 2, B.c1, B.c2, false, 'd3');
+    // Lanzador, bateador y receptor
+    cuerpos += jugador(180, 252, D.c1, D.c2, false, 'd1');
+    cuerpos += jugador(166, 296, B.c1, B.c2, true);
+    cuerpos += jugador(180, 312, D.c1, D.c2, false, 'd2');
+    const nombres = etiqueta(180, 252, j.lanzador, D.c1) + etiqueta(166, 296, j.bateador, B.c1);
+    // Público: puntitos de colores
+    let publico = '';
+    for (let i = 0; i < 140; i++) {
+      const x = (i * 37) % 360, y = 18 + ((i * 53) % 46);
+      publico += `<circle cx="${x}" cy="${y}" r="1.6" fill="${['#ffd21f','#ff3a4a','#2e78ff','#fff','#22c86a','#ff9a2e'][i % 6]}" opacity=".55"/>`;
+    }
+    return `<svg class="campo" viewBox="0 0 360 330" aria-label="Estadio: ${[b1&&'corredor en primera', b2&&'corredor en segunda', b3&&'corredor en tercera'].filter(Boolean).join(', ') || 'bases vacías'}">
+      <defs>
+        <pattern id="franjas" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+          <rect width="24" height="24" fill="#2f8f3a"/><rect width="12" height="24" fill="#37a043"/>
+        </pattern>
+        <radialGradient id="foco" cx="50%" cy="0%" r="90%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="360" height="330" fill="#071233"/>
+      <!-- Gradas y público -->
+      <path d="M0 10 L360 10 L360 92 Q180 40 0 92 Z" fill="#0d1a44"/>
+      ${publico}
+      <!-- Torres de luces -->
+      <g class="luz"><rect x="18" y="0" width="22" height="9" rx="2" fill="#fff8d0"/><rect x="320" y="0" width="22" height="9" rx="2" fill="#fff8d0"/></g>
+      <!-- Pared del jardín con letrero -->
+      <path d="M0 92 Q180 40 360 92 L360 104 Q180 54 0 104 Z" fill="#14324f" stroke="rgba(var(--ac),.8)" stroke-width="1.2"/>
+      <text x="180" y="70" text-anchor="middle" font-family="Audiowide, sans-serif" font-size="9" fill="rgb(var(--ac))" letter-spacing="2">BASEBALL ANALYTICS</text>
+      <!-- Grama del jardín y pista -->
+      <path d="M0 104 Q180 54 360 104 L360 330 L0 330 Z" fill="url(#franjas)"/>
+      <path d="M0 104 Q180 54 360 104 L360 116 Q180 68 0 116 Z" fill="#a86f44" opacity=".9"/>
+      <!-- Cuadro (tierra) -->
+      <path d="M${H[0]} ${H[1]+14} L${P1[0]+26} ${P1[1]} Q180 150 ${P3[0]-26} ${P3[1]} Z" fill="#c98b55"/>
+      <path d="M${H[0]} ${H[1]-8} L${P1[0]-12} ${P1[1]} L${P2[0]} ${P2[1]+10} L${P3[0]+12} ${P3[1]} Z" fill="url(#franjas)"/>
+      <!-- Líneas de foul -->
+      <path d="M${H[0]} ${H[1]} L0 150 M${H[0]} ${H[1]} L360 150" stroke="#fff" stroke-width="1.4" opacity=".85"/>
+      <path d="M${H[0]} ${H[1]} L${P1[0]} ${P1[1]} L${P2[0]} ${P2[1]} L${P3[0]} ${P3[1]} Z" fill="none" stroke="#fff" stroke-width="1" opacity=".55"/>
+      <!-- Montículo y home -->
+      <ellipse cx="180" cy="250" rx="15" ry="7" fill="#d79b63"/><rect x="175" y="248" width="10" height="2.2" fill="#fff"/>
+      <ellipse cx="${H[0]}" cy="${H[1]+2}" rx="24" ry="11" fill="#c98b55"/>
+      <path d="M${H[0]-6} ${H[1]} L${H[0]+6} ${H[1]} L${H[0]+6} ${H[1]+3} L${H[0]} ${H[1]+6} L${H[0]-6} ${H[1]+3} Z" fill="#fff"/>
+      ${base(P1, b1)}${base(P2, b2)}${base(P3, b3)}
+      <rect width="360" height="330" fill="url(#foco)"/>
+      ${cuerpos}
+      ${nombres}
+    </svg>`;
+  }
+
+  function tablero(j){
+    const fila = (lado, quien) => {
+      const d = j[lado];
+      return `<tr><td><div class="tab-eq">${escudo(d.eq)}<span>${EQUIPOS[d.eq].nombre}</span>${j.alBate === quien ? '<i class="bateando" title="batea"></i>' : ''}</div></td>
+        <td class="c">${d.c}</td><td>${d.h}</td><td>${d.e}</td></tr>`;
+    };
+    const leds = (n, total, cls) => Array.from({ length: total }, (_, i) => `<i class="led ${i < n ? cls : ''}"></i>`).join('');
+    return `<div class="tablero">
+      <div class="tablero-tit"><span>MARCADOR</span><span>${j.entrada}</span></div>
+      <table class="tab-tabla"><tr><th></th><th>C</th><th>H</th><th>E</th></tr>${fila('v','v')}${fila('casa','c')}</table>
+      <div class="tab-luces"><div>B ${leds(j.bolas,4,'b')}</div><div>S ${leds(j.strikes,3,'s')}</div><div>O ${leds(j.outs,3,'o')}</div></div>
+    </div>`;
+  }
+
+  function pintarEstadio(){
+    const j = T.juegoHoy;
+    if (!estadioAbierto) return;
+    if (!j) { cerrarEstadio(); return; }
+    $('est-entrada').textContent = j.entrada;
+    $('est-caja').innerHTML = tablero(j) + campoEstadio(j) + `
+      <div class="est-info">
+        <b>Al bate:</b> ${j.bateador}<br>
+        <b>Lanzador:</b> ${j.lanzador}<br>
+        <b>Últ. jugada:</b> ${j.ultima}
+        ${j.nota ? `<br><span class="nota-juego">⚾ ${j.nota}</span>` : ''}
+      </div>
+      <p class="est-pie">Se actualiza solo con cada dato nuevo del juego · Solo para ver</p>`;
+  }
+  function abrirEstadio(){
+    if (!T.juegoHoy || estadioAbierto) return;
+    estadioAbierto = true;
+    $('estadio').classList.add('abierto'); document.body.classList.add('con-estadio');
+    try { history.pushState({ estadio: 1 }, ''); } catch (e) {}
+    pintarEstadio();
+  }
+  function cerrarEstadio(desdeAtras){
+    if (!estadioAbierto) return;
+    estadioAbierto = false;
+    $('estadio').classList.remove('abierto'); document.body.classList.remove('con-estadio');
+    if (!desdeAtras) { try { if (history.state && history.state.estadio) history.back(); } catch (e) {} }
+  }
+  $('est-cerrar').addEventListener('click', () => cerrarEstadio());
+  window.addEventListener('popstate', () => cerrarEstadio(true));   // botón "atrás" del teléfono cierra el estadio
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarEstadio(); });
+  $('juego-hoy').addEventListener('click', (e) => { if (e.target.closest('.tarjeta.en-vivo')) abrirEstadio(); });
+
   function pintarPortada(){
     const j = T.juegoHoy;
     $('vivo').style.display = j ? '' : 'none';
@@ -595,8 +786,10 @@
             <b>Últ. jugada:</b> ${j.ultima}
             ${j.nota ? `<br><span class="nota-juego">⚾ ${j.nota}</span>` : ''}
           </div>
+          <div class="toca-estadio">🏟️ Toca para ver el estadio en vivo</div>
         </div>`;
     }
+    pintarEstadio(); // si el estadio está abierto, se actualiza con los datos nuevos
 
     if(T.anteriores){
       $('anteriores').innerHTML = T.anteriores.map(a => {

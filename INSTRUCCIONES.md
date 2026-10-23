@@ -39,6 +39,14 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 4 pestañas arriba (como la app Pelota Invernal que el dueño mostró de modelo):
   1. **Portada**: "Juego de hoy" EN VIVO (entrada, marcador C/H/E, quién está al bate, bases en diamante, bolas/strikes/outs, al bate, lanzador, última jugada, nota) y "Resultados anteriores" (Final o Pospuesto, marcador C/H/E, ganador, perdedor, salvamento, motivo).
      - **Diamante de bases en 3D acostado** (23-oct, función `diamante3D`): terreno en perspectiva con las 4 almohadillas con grosor. En cada base ocupada hay un **peloterito** (función `peloterito`) con gorra y camiseta del **color del equipo que está al bate** (`color1`/`color2` del equipo) y la almohadilla se pinta de ese color. En home siempre está el bateador con su bate. Datos: `bases:[primera, segunda, tercera]` y `alBate`.
+     - **Mini estadio** (23-oct-2026): al tocar la tarjeta del juego en vivo se abre en pantalla completa un estadio que solo se mira, no se juega. Lo que muestra:
+       - Arriba, un **tablero** tipo estadio con números de luz: C/H/E de cada equipo, un punto amarillo en el que batea, y las luces B/S/O.
+       - Un **campo dibujado** con las gradas y el público, las torres de luces, la pared con el letrero "BASEBALL ANALYTICS", la grama en franjas, la tierra, las bases y el montículo.
+       - La **defensa**: los 9 jugadores en sus posiciones, con el color del equipo que defiende.
+       - Los **corredores** en las bases ocupadas y el **bateador** en home con su bate, en el color del equipo que batea. El bateador y el lanzador llevan **su nombre en una etiqueta encima de la cabeza**.
+       - Abajo, el al bate, el lanzador, la última jugada y el aviso.
+       - Se cierra con la X, con el botón "atrás" del teléfono o con Escape.
+       - Funciones: `abrirEstadio`, `pintarEstadio`, `campoEstadio`, `tablero`. Se vuelve a dibujar cada vez que se pinta la portada, así que **se actualiza solo cuando llegan datos nuevos del robot**. Los jugadores "respiran" un poquito; esa animación se apaga si el teléfono pide menos movimiento.
   2. **Posiciones**: Equipo, G, P, DIF, PCT. DIF y PCT se calculan solos; el líder resaltado.
   3. **Calendario**: agrupado por fecha, visitante a la izquierda, casa a la derecha, hora.
   4. **Resultados**: agrupado por fecha, visitante – carreras – casa; el que gana resaltado con el color del tema; PP = pospuesto.
@@ -63,7 +71,7 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v5`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v6`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -134,3 +142,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: el robot se guía por los horarios guardados (tablas nuevas `revisiones_robot` y `corridas_robot.plan`), tiene todas las protecciones del robot de LotoAnalytics y se activa siempre a mano. El análisis pasa a llamarse `ANALISIS-PN.md`.
 - 23-oct-2026: puestas las imágenes de Gigantes, Toros y Estrellas: ya los 6 equipos tienen su imagen neón.
 - 23-oct-2026: las bolas del marcador van con el color de cada equipo; el que gana lleva aro blanco y brillo.
+- 23-oct-2026: mini estadio al tocar el juego en vivo (tablero, campo, defensa, corredores, bateador y lanzador con su nombre).
