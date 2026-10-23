@@ -51,6 +51,11 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Todo son datos de ejemplo (copiados de las capturas del 22-oct). Falta escoger una fuente real de datos de LIDOM y el robot que los traiga; comparar opciones con precios antes de decidir.
 - Falta (si el dueño quiere) poner un enlace desde el menú ☰ de LotoAnalytics a la página publicada.
 
+## Cuentas y límites gratis (revisado 23-oct-2026)
+- **Supabase (plan gratis):** máximo **2 proyectos activos** por persona. Hoy hay 1 (`lotoanalytics's Project`, ref `vrqzpuikwsopjpehusgp`). El dueño quiere una **base aparte** para Baseball Analytics en la misma cuenta → sería el 2.º y último proyecto gratis. Cada proyecto tiene sus **500 MB** de base de datos, pero el tráfico de salida (5 GB/mes), usuarios y almacenamiento se **comparten** entre los dos. Los proyectos gratis se pausan si pasan una semana sin uso.
+- **Vercel (Hobby):** proyectos `lotoanalytics` y `baseball-analytics` en la misma cuenta. Los límites del mes (100 GB de transferencia, 1 millón de peticiones y de funciones) son de la cuenta, no de cada proyecto. Hobby es solo para uso personal **no comercial**: si se pone publicidad (AdSense) se debería pasar a Pro.
+- **GitHub (gratis):** repositorios públicos y privados **ilimitados**.
+
 ## Registro de decisiones
 - 11-oct-2026: nace la idea "Tuanalytics" multideporte con datos de ejemplo; se retira del repo hasta nuevo aviso.
 - 22-oct-2026: se empieza a trabajar en este proyecto.
@@ -61,3 +66,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 22-oct-2026: los animales se rehacen en estilo clásico/profesional de emblema (de perfil, angulares) porque los primeros parecían caricatura.
 - 22-oct-2026: se sube el proyecto al repo de GitHub `lotoanalytics/basebalanalytics` (primer commit `1cf7639`).
 - 23-oct-2026: publicada en Vercel como proyecto aparte `baseball-analytics` → https://baseball-analytics-lilac.vercel.app (se publica sola con cada push a `main`).
+- 23-oct-2026: el dueño planea crear en Supabase una base aparte (proyecto nuevo) con sus tablas para Baseball Analytics. Todavía no se ha creado.
