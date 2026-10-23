@@ -1,8 +1,8 @@
 // ===== Baseball Analytics: caché para que la página abra rápido =====
 // Regla del dueño: TODO sale de la caché al instante (y se actualiza por detrás),
-// MENOS el juego en vivo / juegos de hoy, que siempre se busca primero en internet.
+// MENOS los datos de la base (el juego en vivo), que SIEMPRE vienen de internet y nunca se guardan.
 // Si cambias una imagen SIN cambiarle el nombre, sube el número de VERSION.
-const VERSION = 'ba-v7';
+const VERSION = 'ba-v8';
 const BASE = [
   '/', '/index.html',
   '/fondo/estadio.webp',
@@ -29,21 +29,10 @@ function esEnVivo(url) {
   return url.hostname.endsWith('.supabase.co') || url.pathname.startsWith('/api/');
 }
 
-// En vivo: primero internet (máx. 5 s); si no hay, lo último guardado.
-async function redPrimero(req) {
-  const cache = await caches.open(VERSION);
-  try {
-    const res = await Promise.race([
-      fetch(req),
-      new Promise((_, no) => setTimeout(() => no(new Error('lento')), 5000)),
-    ]);
-    if (res && res.ok) cache.put(req, res.clone());
-    return res;
-  } catch (err) {
-    const guardado = await cache.match(req);
-    if (guardado) return guardado;
-    throw err;
-  }
+// En vivo / datos de la base: SIEMPRE de internet. Nunca se guardan ni se sirven de la caché
+// (regla del dueño: el juego en vivo tiene que ser siempre dato real).
+async function soloInternet(req) {
+  return fetch(req, { cache: 'no-store' });
 }
 
 // Todo lo demás: se muestra lo guardado al instante y se actualiza por detrás.
@@ -63,6 +52,6 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (esEnVivo(url)) { e.respondWith(redPrimero(req)); return; }
+  if (esEnVivo(url)) { e.respondWith(soloInternet(req)); return; }
   e.respondWith(cachePrimero(req, req.mode === 'navigate'));
 });

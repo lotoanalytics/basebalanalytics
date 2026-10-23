@@ -37,7 +37,12 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Cabecera: botón ☰ (abre el menú), el **logo de la app** (`iconos/icono.svg`) y "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
 - **Datos REALES desde el 23-oct-2026**: la página lee la base de Supabase con la clave PÚBLICA (`sb_publishable_JyMV71aNo6krcED46eVIjQ_NWXx1vX_`, solo deja leer) por `fetch` a `/rest/v1/`: torneos, equipos, juegos, juego_en_vivo y posiciones (función `cargarDatos` → `armarTorneos`).
   - **Se vuelve a leer sola:** cada 30 s si hay juego en vivo, cada 1 min si hay un juego en su horario, y si no, cada 5 min. También al volver a la pestaña.
-  - Lo último que llegó se guarda en el teléfono (`localStorage`, clave `ba-datos`) para abrir al instante. Debajo del lema dice "Actualizado a las …".
+  - ⚠️ **REGLA DEL DUEÑO: el JUEGO EN VIVO siempre es dato real, nunca de la caché.** Los datos de la base (Supabase) **siempre** se piden a internet: `sw.js` usa `soloInternet` con `no-store` y nunca los guarda.
+    - Lo guardado en el teléfono (`localStorage`, clave `ba-datos`) solo se usa para abrir al instante el calendario, los resultados y las posiciones. Los juegos en vivo se le quitan.
+    - Mientras no llega el dato fresco, la portada dice "Buscando el juego en vivo…".
+    - Si no hay señal, el en vivo se quita.
+    - La tarjeta en vivo dice "Dato de las …", con la hora en que el robot lo guardó.
+  - Lo último que llegó se guarda en el teléfono para abrir al instante. Debajo del lema dice "Actualizado a las …".
   - Si no hay juego en vivo, la portada muestra los **juegos de hoy** que todavía no empiezan.
   - Las horas antes de las 10 a. m. salen como "Por confirmar".
   - En las tarjetas de resultados sale "En 5 entradas: x - y".
@@ -76,8 +81,8 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - El dueño pidió: **toda la página se guarda en caché** y abre al instante; **lo único que siempre se busca primero en internet es el en vivo / juegos de hoy**.
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
-  - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v7`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Datos de la base / en vivo (`*.supabase.co` o `/api/`) → **SIEMPRE de internet, nunca de la caché ni se guardan** (desde el 23-oct, por pedido del dueño).
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v8`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
@@ -164,3 +169,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: las bolas del marcador van con el color de cada equipo; el que gana lleva aro blanco y brillo.
 - 23-oct-2026: mini estadio al tocar el juego en vivo (tablero, campo, defensa, corredores, bateador y lanzador con su nombre).
 - 23-oct-2026: la página lee los datos REALES de la base (sin datos de ejemplo), se vuelve una app descargable con logo propio, y el menú tiene "Descargar la app" en vez de "Volver a LotoAnalytics".
+- 23-oct-2026: el juego en vivo nunca sale de la caché (siempre dato real de internet); la tarjeta dice "Dato de las …". Hecho el **robot vigilante** (`robot/vigilar.sh` + `.github/workflows/robot-vigilante.yml`): se dispara una vez y se queda encendido, corriendo el robot cada 5 min hasta la hora indicada (por defecto 00:00 RD; tope 5 h 40 min). Se detiene con "Cancel workflow" en Actions. Primera noche: códigos de status en vivo vistos = 2 y 3; base vacía = 1.

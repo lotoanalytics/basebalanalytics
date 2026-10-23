@@ -541,7 +541,8 @@
           bolas: v.bolas || 0, strikes: v.strikes || 0, outs: v.outs || 0,
           bases: [!!v.primera, !!v.segunda, !!v.tercera],
           bateador: v.bateador || '—', lanzador: v.lanzador || (v.al_bate === 'casa' ? g.lanzador_visitante : g.lanzador_casa) || '—',
-          ultima: v.ultima_jugada || '—', nota: v.nota || null, otros: enVivo.length - 1 };
+          ultima: v.ultima_jugada || '—', nota: v.nota || null, otros: enVivo.length - 1,
+          deLas: v.actualizado ? new Date(v.actualizado).getTime() : null };
       })() : null;
       // Juegos de hoy que todavía no empiezan
       T.hoy = propios.filter((g) => g.fecha === hoy && g.estado === 'programado').sort((a, b) => inicioJuego(a) - inicioJuego(b))
@@ -578,16 +579,22 @@
       try { localStorage.setItem('ba-datos', JSON.stringify(datos)); } catch (e) {}
       usarDatos(datos, false);
     } catch (e) {
-      $('actualizado').textContent = 'Sin conexión · mostrando lo último guardado';
+      $('actualizado').textContent = 'Sin conexión · el juego en vivo se mostrará cuando vuelva la señal';
+      // Sin señal: se quita el en vivo (nunca se muestra un en vivo viejo)
+      if (vivoFresco || ultimosDatos) { vivoFresco = false; Object.values(TORNEOS).forEach((t) => { t.juegoHoy = null; }); ponerTorneo(idActual); }
     } finally { cargando = false; programarSiguiente(); }
   }
   // Hora de reloj en RD: "7:15 p. m."
   const horaReloj = (ms) => { const [hh, mm] = new Date(ms - 4 * 3600 * 1000).toISOString().slice(11, 16).split(':').map(Number);
     return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh >= 12 ? 'p. m.' : 'a. m.'}`; };
   let ultimosDatos = null;
+  // REGLA DEL DUEÑO: el juego en vivo SIEMPRE es dato real recién traído de la base.
+  // Lo guardado en el teléfono solo se usa para lo demás (calendario, resultados, posiciones).
+  let vivoFresco = false;
   function usarDatos(datos, guardados){
     ultimosDatos = datos;
-    armarTorneos(datos);
+    vivoFresco = !guardados;
+    armarTorneos(guardados ? { ...datos, juegos: datos.juegos.filter((g) => g.estado !== 'en_vivo'), vivos: [] } : datos);
     ultimaCarga = datos.hora;
     $('actualizado').textContent = (guardados ? 'Lo último guardado, de las ' : 'Actualizado a las ') + horaReloj(datos.hora);
     ponerTorneo(idActual);
@@ -829,7 +836,9 @@
     const j = T.juegoHoy;
     $('vivo').style.display = j ? '' : 'none';
     if(!j){
-      $('juego-hoy').innerHTML = T.hoy.length
+      $('juego-hoy').innerHTML = !vivoFresco
+        ? `<div class="tarjeta vacio"><b>Buscando el juego en vivo…</b>El en vivo siempre se trae al momento, nunca de lo guardado.</div>`
+        : T.hoy.length
         ? `<div class="tarjeta"><div class="estado"><b>Hoy</b><span>Todavía no empiezan</span></div>` +
           T.hoy.map(([, v, c, hora]) => `<div class="juego">${eq(v)}<div class="medio"><span class="hora">${hora}</span><small>vs</small></div>${eq(c, true, true)}</div>`).join('') +
           `<div class="detalle" style="margin-top:8px; text-align:center">Cuando empiece el juego, aquí lo verás en vivo.</div></div>`
@@ -838,7 +847,7 @@
       const alBate = j.alBate === 'v' ? j.v.eq : j.casa.eq;
       $('juego-hoy').innerHTML = `
         <div class="tarjeta en-vivo">
-          <div class="estado"><b>${j.entrada}</b><span>Hoy</span></div>
+          <div class="estado"><b>${j.entrada}</b><span>${j.deLas ? 'Dato de las ' + horaReloj(j.deLas) : 'Hoy'}</span></div>
           ${marcador(j, j.alBate)}
           <div class="situacion">
             ${diamante3D(j.bases, alBate)}
