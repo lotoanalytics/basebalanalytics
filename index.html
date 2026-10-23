@@ -512,9 +512,9 @@
   const inicioJuego = (g) => { const [y, m, d] = g.fecha.split('-').map(Number); const [hh, mm] = String(g.hora || '12:00').split(':').map(Number); return Date.UTC(y, m - 1, d, hh, mm) + 4 * 3600 * 1000; };
 
   // Código "base" de la fuente -> bases ocupadas [primera, segunda, tercera].
-  // Comprobado en vivo el 23-oct-2026: 1 = vacías, 2 = primera, 6 = primera y tercera, 8 = llenas.
-  // 3 y 7 se deducen igual de las dos formas posibles de leerlo. 4 y 5 faltan por confirmar.
-  const BASES_CODIGO = { 1: [0,0,0], 2: [1,0,0], 3: [0,1,0], 6: [1,0,1], 7: [0,1,1], 8: [1,1,1] };
+  // DESCIFRADO en vivo el 23-oct-2026 (Tigres–Estrellas y Águilas–Leones):
+  // 1 vacías · 2 primera · 3 segunda · 4 tercera · 5 primera y segunda · 6 primera y tercera · 7 segunda y tercera · 8 llenas
+  const BASES_CODIGO = { 1: [0,0,0], 2: [1,0,0], 3: [0,1,0], 4: [0,0,1], 5: [1,1,0], 6: [1,0,1], 7: [0,1,1], 8: [1,1,1] };
   const basesDesdeCodigo = (c) => (BASES_CODIGO[c] || [0,0,0]).map(Boolean);
 
   // Convierte lo que viene de la base al formato que usa la página

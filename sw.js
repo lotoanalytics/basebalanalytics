@@ -2,7 +2,7 @@
 // Regla del dueño: TODO sale de la caché al instante (y se actualiza por detrás),
 // MENOS los datos de la base (el juego en vivo), que SIEMPRE vienen de internet y nunca se guardan.
 // Si cambias una imagen SIN cambiarle el nombre, sube el número de VERSION.
-const VERSION = 'ba-v9';
+const VERSION = 'ba-v10';
 const BASE = [
   '/', '/index.html',
   '/fondo/estadio.webp',

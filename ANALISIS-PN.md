@@ -39,14 +39,14 @@ Cada juego trae estos datos:
 | `id` | Número del juego (sirve para no duplicar y para el enlace `/id`) | `2198` |
 | `season_id` | Temporada | `23` = LIDOM 2026-27 |
 | `date` | Fecha y hora **de República Dominicana** | `2026-10-22 19:00:00` |
-| `status` | Estado del juego | **1 = programado · 6 = final · 7 = pospuesto**. Los de "en vivo" faltan por ver. |
+| `status` | Estado del juego | **1 = programado · 2 = en juego · 3 = visto al arrancar el juego (también en curso) · 6 = final · 7 = pospuesto** |
 | `comment` | Nota | `Por lluvias` (cuando se pospone) |
 | `roundText` | Entrada en texto | `Alta 1ra`, `Baja 10ma` |
 | `currentInningNum` | Número de la entrada | `10` |
 | `part` | Mitad de la entrada | **1 = Alta** (batea el visitante) · **2 = Baja** (batea el de casa) |
 | `battingTeam` | Quién batea | `awayTeam` (visitante) / `homeTeam` (casa) |
 | `balls` · `strikes` · `outs` | Conteo | `3`, `1`, `0` |
-| `base` | Bases ocupadas (en código) | Casi siempre `1`; una vez `3`. **Falta descifrar** cómo se lee con un juego en vivo. |
+| `base` | Bases ocupadas (en código). **Descifrado en vivo el 23-oct-2026** | **1** vacías · **2** primera · **3** segunda · **4** tercera · **5** primera y segunda · **6** primera y tercera · **7** segunda y tercera · **8** llenas |
 | `lastPlayByPlay` | Última jugada | `Kelvin Gutierrez se embasa por Error del Campo Corto` |
 | `atBat` | Bateador | (vacío cuando el juego no está en vivo) |
 | `winningPitcher` · `losingPitcher` · `savingPitcher` | Ganador, perdedor y salvamento | `Yerry Rodriguez` |
@@ -209,7 +209,7 @@ MLB publica en JSON los datos de las ligas invernales, **LIDOM incluida**. Lo co
 - [x] Revisar el documento de LotoAnalytics: `robot/probar-conectate.js` (solo lectura). La copia es `robot/explorar-pelotainvernal.js`.
 - [x] Ver de dónde carga pelotainvernal el calendario y los resultados (JSON por POST).
 - [x] Confirmar qué es "H: 1 - 0": las carreras en las primeras 5 entradas (`runs_half`).
-- [ ] **Escuchar el canal en vivo durante un juego**, para ver los estados en vivo y cómo viene `base`. Hay que correr el explorador mientras hay juego, por ejemplo a las 8:00 p. m.
+- [x] Estados en vivo y código `base` descifrados con el robot vigilante la noche del 23-oct-2026. (El canal WebSocket no hizo falta: el calendario trae el en vivo.)
 - [ ] Ver qué trae `page=2` en resultados (los juegos viejos).
 - [ ] Sacar los IDs de MLB de los 6 equipos de LIDOM.
 - [ ] Revisar el `boxscore` / `feed/live` de MLB para ganador, perdedor, salvamento y la última jugada.
