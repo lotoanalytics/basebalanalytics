@@ -1,0 +1,73 @@
+name: Robot vigilante (se queda encendido)
+
+# Modo vigilante: se dispara UNA vez (a mano) y se queda encendido corriendo
+# el robot de béisbol cada X minutos hasta la hora que se diga (hora RD).
+# Para detenerlo antes: pestaña Actions -> esta corrida -> "Cancel workflow".
+on:
+  workflow_dispatch:
+    inputs:
+      vigilar_hasta:
+        description: "Hasta qué hora vigilar (hora RD, formato 24 h). 00:00 = medianoche"
+        required: false
+        default: "00:00"
+      cada_minutos:
+        description: "Cada cuántos minutos revisa"
+        required: false
+        default: "5"
+
+permissions:
+  contents: write
+
+# Comparte el turno con el robot normal: nunca corren los dos a la vez.
+concurrency:
+  group: robot-beisbol
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Descargar archivos
+        uses: actions/checkout@v4
+
+      - name: Descargar la rama del registro
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: exploracion
+          path: expl
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Caché de librerías y Chrome
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: ${{ runner.os }}-node22-robot-beisbol-v2
+
+      - name: Instalar librerías
+        run: |
+          if [ ! -f package.json ]; then npm init -y > /dev/null; fi
+          if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ] && [ -d node_modules/puppeteer ] && [ -d node_modules/@supabase/supabase-js ] && [ -d node_modules/puppeteer-extra-plugin-stealth ]; then
+            echo "Librerías ya están en la caché: no se instalan otra vez."
+          else
+            npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth @supabase/supabase-js dotenv --no-audit --no-fund
+          fi
+
+      - name: Vigilar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VIGILAR_HASTA: ${{ github.event.inputs.vigilar_hasta }}
+          CADA_MINUTOS: ${{ github.event.inputs.cada_minutos }}
+        run: |
+          git -C expl config user.name "robot-beisbol" 2>/dev/null || true
+          git -C expl config user.email "robot@users.noreply.github.com" 2>/dev/null || true
+          bash robot/vigilar.sh
