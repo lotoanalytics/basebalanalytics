@@ -33,6 +33,8 @@ vuelta=0
 while [ "$(date +%s)" -lt "$fin" ]; do
   vuelta=$((vuelta + 1))
   echo "===== Vuelta $vuelta · $(TZ=America/Santo_Domingo date '+%I:%M %p') hora RD =====" | tee -a registro/vigilante.txt
+  # Toma la versión más nueva del robot antes de cada vuelta (así las mejoras entran sin apagarlo)
+  git fetch -q origin main 2>/dev/null && git checkout -q origin/main -- robot/robot-beisbol.js 2>/dev/null || true
   node robot/robot-beisbol.js 2>&1 | tee registro/ultima-corrida.txt >> registro/vigilante.txt
   tail -n 12 registro/ultima-corrida.txt
   guardar_registro

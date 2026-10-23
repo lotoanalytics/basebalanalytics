@@ -232,15 +232,22 @@ async function abrirConReintento(browser, ruta, esperarDatos) {
 }
 
 // Comprobación: lo recibido tiene que coincidir con lo que se ve en pantalla
+// Los nombres siempre tienen que estar en pantalla. El marcador solo se compara en los juegos
+// FINALES: durante un juego en vivo la página lo muestra de otra forma y cambia a cada rato.
 function coincideConPantalla(juegos, enPantalla) {
   const pantalla = texto(enPantalla);
   const muestra = juegos.slice(0, 3);
   if (!muestra.length) return true;
-  return muestra.every((j) => {
-    const marcador = `${j.awayTeam.runs} - ${j.homeTeam.runs}`;
-    return pantalla.includes(texto(j.awayTeam.name)) && pantalla.includes(texto(j.homeTeam.name)) &&
-           (estadoDesdeFuente(j.status) === 'programado' || pantalla.includes(marcador));
+  const fallos = muestra.filter((j) => {
+    const nombres = pantalla.includes(texto(j.awayTeam.name)) && pantalla.includes(texto(j.homeTeam.name));
+    const marcador = estadoDesdeFuente(j.status) !== 'final' || pantalla.includes(`${j.awayTeam.runs} - ${j.homeTeam.runs}`);
+    return !(nombres && marcador);
   });
+  if (fallos.length) {
+    console.warn('[robot] No coincide con la pantalla: ' + fallos.map((j) => `${j.awayTeam.name} ${j.awayTeam.runs}-${j.homeTeam.runs} ${j.homeTeam.name} (status ${j.status})`).join(' | '));
+    console.warn('[robot] Lo que se ve: ' + pantalla.slice(0, 500));
+  }
+  return fallos.length === 0;
 }
 
 // ---------------------------------------------------------------------
@@ -328,6 +335,7 @@ async function guardarJuego(torneoId, j, cuenta) {
   if (error) throw error;
   cuenta.guardados++;
   if (fila.estado === 'en_vivo') {
+    console.log(`[robot] EN VIVO: ${fila.visitante} ${fila.carreras_visitante}-${fila.carreras_casa} ${fila.casa} · ${j.roundText} · status ${j.status} · part ${j.part} · base ${j.base} · B${j.balls} S${j.strikes} O${j.outs} · al bate: ${j.atBat || '—'}`);
     const { error: e2 } = await supabase.from('juego_en_vivo').upsert({ juego_id: guardado.id, ...filaEnVivo(j) }, { onConflict: 'juego_id' });
     if (e2) throw e2;
   } else if (anterior && anterior.estado === 'en_vivo') {
