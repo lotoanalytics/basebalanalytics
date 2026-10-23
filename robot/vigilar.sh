@@ -1,46 +1,48 @@
 #!/usr/bin/env bash
 # =====================================================================
-# MODO VIGILANTE del robot de béisbol
+# ROBOT VIGILANTE (se queda encendido)
 # =====================================================================
-# Se queda ENCENDIDO y corre el robot cada CADA_MINUTOS (por defecto 5)
-# hasta la hora VIGILAR_HASTA (hora RD, por defecto 00:00 = medianoche).
-# Para detenerlo antes: en GitHub, pestaña Actions -> la corrida
-# "Robot vigilante" -> botón "Cancel workflow".
-# Cada vuelta es una corrida normal del robot (con todas sus protecciones):
-# mira los horarios guardados y busca solo lo que toca.
+# Enciende el robot en MODO EN VIVO: el Chrome se queda abierto y el juego
+# en vivo se revisa cada CADA_SEGUNDOS (por defecto 30) hasta VIGILAR_HASTA
+# (hora RD, por defecto 00:00 = medianoche). Resultados y posiciones se
+# buscan cada ~2 minutos o cuando termina un juego.
+# Si el robot se cae o se pega, este archivo lo vuelve a encender solo.
+# Para detenerlo antes: GitHub -> Actions -> "Robot vigilante" -> "Cancel workflow".
 # Tope de seguridad: 5 h 40 min (GitHub corta cualquier corrida a las 6 h).
 # =====================================================================
 set -u
-HASTA="${VIGILAR_HASTA:-00:00}"
-CADA="${CADA_MINUTOS:-5}"
+export MODO_VIVO=1
+export VIGILAR_HASTA="${VIGILAR_HASTA:-00:00}"
+export CADA_SEGUNDOS="${CADA_SEGUNDOS:-30}"
 hoy_rd=$(TZ=America/Santo_Domingo date +%F)
-fin=$(TZ=America/Santo_Domingo date -d "$hoy_rd $HASTA" +%s)
+fin=$(TZ=America/Santo_Domingo date -d "$hoy_rd $VIGILAR_HASTA" +%s)
 ahora=$(date +%s)
-if [ "$fin" -le "$ahora" ]; then fin=$((fin + 86400)); fi       # 00:00 = la medianoche que viene
+if [ "$fin" -le "$ahora" ]; then fin=$((fin + 86400)); fi
 tope=$((ahora + 340 * 60)); [ "$fin" -gt "$tope" ] && fin=$tope
-echo "[vigilante] Encendido. Corre el robot cada $CADA min hasta las $(TZ=America/Santo_Domingo date -d @"$fin" '+%I:%M %p') hora RD."
+echo "[vigilante] Encendido: cada $CADA_SEGUNDOS s hasta las $(TZ=America/Santo_Domingo date -d @"$fin" '+%I:%M %p') hora RD."
 
 mkdir -p registro
 : > registro/vigilante.txt
 
 guardar_registro() {   # sube lo que va diciendo el robot a la rama "exploracion"
   [ -d expl/.git ] || return 0
-  mkdir -p expl/registro && cp registro/* expl/registro/
+  mkdir -p expl/registro && tail -n 400 registro/vigilante.txt > expl/registro/vigilante.txt
   (cd expl && git add -A registro && git commit -qm "Vigilante $(date -u +%F_%H%M)" && git push -q origin HEAD:exploracion) >/dev/null 2>&1 || true
 }
+# Cada 2 minutos se sube el registro (en segundo plano)
+( while true; do sleep 120; guardar_registro; done ) &
+SUBIDOR=$!
+trap 'kill $SUBIDOR 2>/dev/null; guardar_registro' EXIT
 
-vuelta=0
-while [ "$(date +%s)" -lt "$fin" ]; do
-  vuelta=$((vuelta + 1))
-  echo "===== Vuelta $vuelta · $(TZ=America/Santo_Domingo date '+%I:%M %p') hora RD =====" | tee -a registro/vigilante.txt
-  # Toma la versión más nueva del robot antes de cada vuelta (así las mejoras entran sin apagarlo)
+arranques=0
+while [ "$(date +%s)" -lt "$((fin - 30))" ]; do
+  arranques=$((arranques + 1))
+  # Toma la versión más nueva del robot cada vez que lo enciende
   git fetch -q origin main 2>/dev/null && git checkout -q origin/main -- robot/robot-beisbol.js 2>/dev/null || true
-  node robot/robot-beisbol.js 2>&1 | tee registro/ultima-corrida.txt >> registro/vigilante.txt
-  tail -n 12 registro/ultima-corrida.txt
-  guardar_registro
-  resto=$((fin - $(date +%s))); [ "$resto" -le 0 ] && break
-  espera=$((CADA * 60)); [ "$espera" -gt "$resto" ] && espera=$resto
-  sleep "$espera"
+  echo "===== Encendido #$arranques · $(TZ=America/Santo_Domingo date '+%I:%M %p') hora RD =====" | tee -a registro/vigilante.txt
+  node robot/robot-beisbol.js 2>&1 | grep --line-buffered -v "^  (prueba)" | tee -a registro/vigilante.txt
+  [ "$(date +%s)" -ge "$((fin - 30))" ] && break
+  echo "[vigilante] El robot se detuvo; se vuelve a encender en 10 s." | tee -a registro/vigilante.txt
+  sleep 10
 done
-echo "[vigilante] Llegó la hora de apagarse. $vuelta vuelta(s) hechas." | tee -a registro/vigilante.txt
-guardar_registro
+echo "[vigilante] Llegó la hora de apagarse." | tee -a registro/vigilante.txt

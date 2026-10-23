@@ -1,7 +1,8 @@
 name: Robot vigilante (se queda encendido)
 
-# Modo vigilante: se dispara UNA vez (a mano) y se queda encendido corriendo
-# el robot de béisbol cada X minutos hasta la hora que se diga (hora RD).
+# Modo vigilante: se dispara UNA vez (a mano) y se queda encendido con el
+# Chrome abierto, revisando el juego en vivo cada X segundos (por defecto 30)
+# hasta la hora que se diga (hora RD).
 # Para detenerlo antes: pestaña Actions -> esta corrida -> "Cancel workflow".
 on:
   workflow_dispatch:
@@ -10,10 +11,10 @@ on:
         description: "Hasta qué hora vigilar (hora RD, formato 24 h). 00:00 = medianoche"
         required: false
         default: "00:00"
-      cada_minutos:
-        description: "Cada cuántos minutos revisa"
+      cada_segundos:
+        description: "Cada cuántos segundos revisa el juego en vivo (mínimo 15)"
         required: false
-        default: "5"
+        default: "30"
 
 permissions:
   contents: write
@@ -66,7 +67,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VIGILAR_HASTA: ${{ github.event.inputs.vigilar_hasta }}
-          CADA_MINUTOS: ${{ github.event.inputs.cada_minutos }}
+          CADA_SEGUNDOS: ${{ github.event.inputs.cada_segundos }}
         run: |
           git -C expl config user.name "robot-beisbol" 2>/dev/null || true
           git -C expl config user.email "robot@users.noreply.github.com" 2>/dev/null || true

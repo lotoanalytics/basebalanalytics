@@ -80,7 +80,13 @@ const REFRESCAR_CALENDARIO_MS = 12 * 60 * 60 * 1000;   // calendario: cada 12 ho
 const ANTES_DEL_JUEGO_MIN = 15;                        // se empieza a vigilar 15 min antes
 const DURACION_JUEGO_MIN = 6 * 60;                     // y hasta 6 horas después de la hora del juego
 const HORA_MINIMA_CREIBLE = 10;                        // antes de las 10:00 a. m. = hora por confirmar
-const INICIO_CORRIDA = Date.now();
+let INICIO_CORRIDA = Date.now();   // en el modo en vivo se reinicia en cada vuelta
+// MODO EN VIVO (lo usa el robot vigilante): el Chrome se queda abierto y el juego en vivo
+// se revisa cada CADA_SEGUNDOS (por defecto 30) hasta VIGILAR_HASTA (hora RD).
+const MODO_VIVO = process.env.MODO_VIVO === '1';
+const CADA_SEGUNDOS = Math.max(15, Number(process.env.CADA_SEGUNDOS || 30));
+const VUELTAS_COMPLETAS = Math.max(1, Math.round(120 / CADA_SEGUNDOS)); // resultados cada ~2 min
+const VIGILANTE_VUELTA_MS = 150 * 1000;                                 // una vuelta nunca puede pasar de 2½ min
 
 // ---------------------------------------------------------------------
 // Horas de República Dominicana (UTC-4 todo el año, sin horario de verano)
@@ -377,14 +383,22 @@ async function marcarRevision(torneoId, seccion) {
 // ---------------------------------------------------------------------
 // 5) LA CORRIDA
 // ---------------------------------------------------------------------
-async function correr() {
+async function correr(opciones = {}) {
+  const { browserCompartido = null, rapida = false } = opciones;
+  INICIO_CORRIDA = Date.now();
   const cuenta = { guardados: 0, errores: 0, notas: [] };
-  console.log(`[robot] Hora RD: ${fechaRD(Date.now())} ${horaRDtexto(Date.now())}${SOLO_LEER ? ' · MODO PRUEBA (no se guarda nada)' : ''}${FORZAR ? ' · FORZADO' : ''}`);
+  console.log(`[robot] Hora RD: ${fechaRD(Date.now())} ${horaRDtexto(Date.now())}${SOLO_LEER ? ' · MODO PRUEBA (no se guarda nada)' : ''}${FORZAR ? ' · FORZADO' : ''}${rapida ? ' · vuelta rápida (solo el en vivo)' : ''}`);
 
   const plan = await armarPlan();
+  // Vuelta rápida del modo en vivo: solo el calendario (ahí viene el juego en vivo).
+  // Resultados y posiciones se buscan en las vueltas completas (cada ~2 min) o si algo terminó.
+  if (rapida) for (const [t, p] of [...plan]) {
+    ['resultados', 'posiciones'].forEach((x) => p.secciones.delete(x));
+    if (!p.secciones.size) plan.delete(t);
+  }
   const textoPlan = [...plan].map(([t, p]) => `${t}: ${[...p.secciones].join(', ')} (${[...new Set(p.motivos)].join('; ')})`).join(' | ');
   let idCorrida = null;
-  if (!SOLO_LEER) {
+  if (!SOLO_LEER && !rapida) {   // las vueltas rápidas no se anotan una por una (serían cientos)
     const { data } = await supabase.from('corridas_robot').insert({ plan: textoPlan || 'nada que buscar' }).select('id').single();
     idCorrida = data && data.id;
   }
@@ -392,11 +406,12 @@ async function correr() {
   if (!plan.size) {
     console.log('[robot] Nada que buscar ahora según los horarios: no se abre el navegador. Corrida casi gratis.');
     if (idCorrida) await supabase.from('corridas_robot').update({ fin: new Date().toISOString() }).eq('id', idCorrida);
-    return;
+    return { nada: true };
   }
   console.log('[robot] Plan: ' + textoPlan);
 
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const browser = browserCompartido || await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  let huboFinalEnAlguno = false;
   try {
     for (const [torneoId, { secciones }] of plan) {
       const liga = LIGAS[torneoId];
@@ -411,8 +426,11 @@ async function correr() {
           if (!coincideConPantalla(r.json, r.enPantalla)) throw new Error('lo recibido NO coincide con lo que muestra la página; no se usa');
           console.log(`[robot] ${torneoId} · ${seccion}: ${r.json.length} juego(s) leídos y comprobados.`);
           await asegurarEquipos(torneoId, r.json);
-          for (const j of r.json) {
-            try { if (await guardarJuego(torneoId, j, cuenta)) huboFinal = true; }
+          // En la vuelta rápida solo se guardan los juegos de hoy (no hace falta repasar todo el calendario)
+          const hoy = fechaRD(Date.now());
+          const lista = rapida ? r.json.filter((j) => String(j.date || '').slice(0, 10) === hoy) : r.json;
+          for (const j of lista) {
+            try { if (await guardarJuego(torneoId, j, cuenta)) { huboFinal = true; huboFinalEnAlguno = true; } }
             catch (e) { cuenta.errores++; cuenta.notas.push(`${torneoId} juego ${j.id}: ${e.message}`); console.error(`[robot] Error guardando juego ${j.id}: ${e.message}`); }
           }
           await marcarRevision(torneoId, seccion);
@@ -443,8 +461,11 @@ async function correr() {
     }
   } finally {
     // Cerrar sin quedarse esperando: si no cierra en 5 s, se mata el proceso
-    await Promise.race([browser.close().catch(() => {}), esperar(5000)]);
-    try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {}
+    // (en el modo en vivo el Chrome se queda abierto para la próxima vuelta)
+    if (!browserCompartido) {
+      await Promise.race([browser.close().catch(() => {}), esperar(5000)]);
+      try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {}
+    }
   }
 
   if (idCorrida) {
@@ -454,8 +475,58 @@ async function correr() {
     }).eq('id', idCorrida);
   }
   console.log(`[robot] Terminado. Juegos guardados: ${cuenta.guardados} · Errores: ${cuenta.errores}`);
+  return { huboFinal: huboFinalEnAlguno, errores: cuenta.errores };
 }
 
+// ---------------------------------------------------------------------
+// 6) MODO EN VIVO: el Chrome abierto y una vuelta cada CADA_SEGUNDOS
+// ---------------------------------------------------------------------
+function finDelVigilante() {
+  const [hh, mm] = String(process.env.VIGILAR_HASTA || '00:00').split(':').map(Number);
+  const hoy = fechaRD(Date.now());
+  let fin = momentoRD(hoy, `${String(hh).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
+  if (fin <= Date.now()) fin += 24 * 3600 * 1000;           // 00:00 = la medianoche que viene
+  return Math.min(fin, Date.now() + 340 * 60 * 1000);        // tope de seguridad: 5 h 40 min
+}
+
+async function modoEnVivo() {
+  const fin = finDelVigilante();
+  console.log(`[en vivo] Encendido: revisa cada ${CADA_SEGUNDOS} s hasta las ${horaRDtexto(fin)} hora RD. El Chrome se queda abierto.`);
+  let browser = null, abiertoDesde = 0, vuelta = 0, pendienteCompleta = true;
+  const abrirChrome = async () => {
+    if (browser) { await Promise.race([browser.close().catch(() => {}), esperar(5000)]); try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {} }
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    abiertoDesde = Date.now();
+  };
+  while (Date.now() < fin) {
+    vuelta++;
+    const inicio = Date.now();
+    // Vigilante de cada vuelta: si una vuelta se pega, el proceso se cierra y vigilar.sh lo vuelve a encender
+    const perro = setTimeout(() => { console.error('[en vivo] Una vuelta pasó de 2½ min: se reinicia el robot.'); process.exit(3); }, VIGILANTE_VUELTA_MS);
+    try {
+      // Chrome nuevo cada 30 min para que no se ponga pesado
+      if (!browser || Date.now() - abiertoDesde > 30 * 60 * 1000) await abrirChrome();
+      const completa = pendienteCompleta || vuelta % VUELTAS_COMPLETAS === 1;
+      const r = await correr({ browserCompartido: browser, rapida: !completa });
+      pendienteCompleta = !!(r && r.huboFinal); // si terminó un juego, la próxima vuelta trae resultados y posiciones
+      if (r && r.nada) console.log('[en vivo] Ningún juego en su horario ahora mismo.');
+    } catch (e) {
+      console.error('[en vivo] Error en la vuelta ' + vuelta + ': ' + e.message + ' (se sigue con la próxima)');
+      try { await abrirChrome(); } catch (e2) {}
+    } finally {
+      clearTimeout(perro);
+    }
+    const espera = Math.max(1000, CADA_SEGUNDOS * 1000 - (Date.now() - inicio));
+    if (Date.now() + espera >= fin) break;
+    await esperar(espera);
+  }
+  if (browser) { await Promise.race([browser.close().catch(() => {}), esperar(5000)]); try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {} }
+  console.log(`[en vivo] Llegó la hora de apagarse. ${vuelta} vuelta(s).`);
+}
+
+if (MODO_VIVO) {
+  modoEnVivo().then(() => process.exit(0)).catch((e) => { console.error('[en vivo] Error grave:', e.message); process.exit(1); });
+} else {
 // VIGILANTE: si la corrida pasa de 3 minutos, se termina sola (lo guardado queda guardado).
 setTimeout(() => {
   console.error('[robot] La corrida pasó de 3 minutos: se termina para no gastar minutos. Lo ya guardado queda guardado.');
@@ -466,3 +537,4 @@ correr().then(() => process.exit(0)).catch((e) => {
   console.error('[robot] Error grave:', e.message);
   process.exit(1);
 });
+}
