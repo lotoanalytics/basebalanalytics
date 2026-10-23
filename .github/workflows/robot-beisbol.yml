@@ -1,0 +1,62 @@
+name: Robot de béisbol
+
+# Lee pelotainvernal.com (calendario, resultados, posiciones y juego en vivo)
+# y lo guarda en Supabase. Igual que en LotoAnalytics, NO se programa con
+# "schedule" (GitHub atrasa esos horarios): se manda a correr desde
+# cron-job.org llamando a la API de GitHub (workflow_dispatch), o a mano
+# desde la pestaña Actions.
+#
+# Horarios sugeridos para cron-job.org (hora RD):
+#   - Una vez al día, 10:00 AM: calendario y posiciones.
+#   - De 4:00 PM a 1:00 AM: cada 5 minutos (juegos en vivo y resultados).
+on:
+  workflow_dispatch:
+    inputs:
+      solo_leer:
+        description: "Modo prueba: 1 = solo leer y mostrar, no guardar nada"
+        required: false
+        default: "0"
+
+# Nunca dos corridas a la vez: si llega otra, espera a que termine la anterior.
+concurrency:
+  group: robot-beisbol
+  cancel-in-progress: false
+
+jobs:
+  robot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar archivos
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Caché: la primera corrida baja Chrome y las librerías; las demás las reusan.
+      - name: Caché de librerías y Chrome
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: ${{ runner.os }}-node22-robot-beisbol-v1
+
+      - name: Instalar librerías
+        run: |
+          if [ ! -f package.json ]; then npm init -y > /dev/null; fi
+          if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ] && [ -d node_modules/puppeteer ] && [ -d node_modules/@supabase/supabase-js ]; then
+            echo "Librerías ya están en la caché: no se instalan otra vez."
+          else
+            npm install puppeteer @supabase/supabase-js --no-audit --no-fund
+          fi
+
+      - name: Correr el robot
+        timeout-minutes: 4
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SOLO_LEER: ${{ github.event.inputs.solo_leer }}
+        run: node robot/robot-beisbol.js
