@@ -1,11 +1,31 @@
 {
   "headers": [
-    { "source": "/sw.js", "headers": [
-      { "key": "Cache-Control", "value": "no-cache" },
-      { "key": "Service-Worker-Allowed", "value": "/" }
-    ]},
-    { "source": "/(fondo|escudos)/(.*)", "headers": [
-      { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=604800" }
-    ]}
-  ]
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/(fondo|escudos)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "exploracion": false
+    }
+  }
 }

@@ -6,6 +6,9 @@ name: Explorar pelotainvernal (solo lectura)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   explorar:
     runs-on: ubuntu-latest
@@ -33,3 +36,16 @@ jobs:
           name: prueba-pelotainvernal
           path: prueba-pelotainvernal/
           if-no-files-found: ignore
+
+      # Además guarda lo leído en la rama "exploracion" del repo, para poder
+      # revisarlo sin descargar archivos. No toca la rama main.
+      - name: Guardar lo leído en la rama exploracion
+        if: always()
+        run: |
+          git config user.name "robot-explorador"
+          git config user.email "robot@users.noreply.github.com"
+          git checkout --orphan exploracion
+          git rm -rq --cached . || true
+          git add -f prueba-pelotainvernal/
+          git commit -m "Exploración de pelotainvernal $(date -u +%F_%H%M)" || exit 0
+          git push -f origin exploracion
