@@ -7,6 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0b1f8a">
 <title>Baseball Analytics</title>
+<link rel="preload" href="/fondo/estadio.webp" as="image" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Exo+2:ital,wght@0,500;0,600;0,700;0,800;1,800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -653,6 +654,11 @@
     document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === b.dataset.vista));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  // Caché: la página abre al instante desde lo guardado; el juego en vivo siempre se busca primero en internet (ver sw.js)
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
 
   let torneoGuardado = 'invernal'; try{ torneoGuardado = localStorage.getItem('ba-torneo') || 'invernal'; }catch(e){}
   ponerTorneo(torneoGuardado);

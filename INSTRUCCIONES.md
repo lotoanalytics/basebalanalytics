@@ -38,6 +38,16 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - En el código: si un equipo tiene `img`, se muestra la imagen (fondo oscuro, `object-fit: cover`) en vez del animal dibujado. **Gigantes, Toros y Estrellas** siguen con el animal dibujado hasta que el dueño mande sus imágenes en el mismo estilo.
 - El proyecto de Claude solo guarda texto: las imágenes viven en el repo de GitHub.
 
+## Caché (desde 23-oct-2026) — para que abra rápido
+- El dueño pidió: **toda la página se guarda en caché** y abre al instante; **lo único que siempre se busca primero en internet es el en vivo / juegos de hoy**.
+- Archivo **`sw.js`** (service worker): 
+  - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
+  - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v1`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+- **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
+- Probado: después de la primera visita, la página abre completa **sin internet**.
+- Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
+
 ## Menú ☰: torneos y colores
 - El ☰ abre un menú lateral. En este orden: **Torneos** (arriba, lo principal), **Colores del diseño** y "Volver a LotoAnalytics".
 - **Torneos** (como en la app Pelota Invernal): **Pelota Invernal** (LIDOM), **Serie del Caribe** y **Clásico Mundial**. Al escoger uno cambian el lema y las 4 pestañas. Se recuerda en el teléfono (`localStorage`, clave `ba-torneo`).
@@ -85,3 +95,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: prueba con la imagen propia del dueño como escudo de Águilas (`escudos/aguilas.webp`).
 - 23-oct-2026: Tigres, Leones y Águilas con las imágenes neón del dueño; se borró la prueba anterior de Águilas.
 - 23-oct-2026: el fondo pasa a ser solo la imagen del estadio (sin personas, sin pelotas ni estrellas).
+- 23-oct-2026: caché con service worker (`sw.js`): todo desde caché, el en vivo siempre de internet primero.
