@@ -7,6 +7,15 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0b1f8a">
 <title>Baseball Analytics</title>
+<!-- App descargable (PWA) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="/iconos/favicon-32.png">
+<link rel="apple-touch-icon" href="/iconos/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Baseball A.">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Resultados, posiciones, calendario y juego en vivo de la pelota invernal dominicana.">
 <link rel="preload" href="/fondo/estadio.webp" as="image" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,6 +82,14 @@
   .menu-link{display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; border:1px solid var(--linea-azul); background:var(--panel);
     color:var(--texto); text-decoration:none; font-weight:600; font-size:.92rem}
   .menu-link svg{width:20px; height:20px; color:var(--verde)}
+  .logo-app{width:34px; height:34px; flex:none; border-radius:9px; filter:drop-shadow(0 0 8px rgba(56,217,255,.55))}
+  .menu-link.descargar{width:100%; cursor:pointer; font:700 .95rem 'Exo 2', system-ui, sans-serif; text-align:left;
+    background:linear-gradient(135deg, rgba(var(--ac),.35), rgba(10,24,90,.8)); border:1.5px solid rgb(var(--ac)); box-shadow:0 0 16px rgba(var(--ac),.35)}
+  .menu-link.descargar img{border-radius:9px}
+  .menu-link.descargar span{flex:1}
+  .menu-link.descargar small{display:block; color:var(--suave); font-weight:500; font-size:.74rem}
+  .como-instalar{margin-top:10px; padding:12px; border-radius:14px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); font-size:.86rem; line-height:1.55}
+  .como-instalar b{color:#fff}
 
   .torneo .ico{width:30px; height:30px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center;
     background:rgba(var(--ac),0.12); color:var(--verde)}
@@ -343,10 +360,13 @@
   <div class="temas" id="torneos"></div>
   <h3>Colores del diseño</h3>
   <div class="temas" id="temas"></div>
-  <a class="menu-link" href="/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    Volver a LotoAnalytics
-  </a>
+  <h3>App</h3>
+  <button class="menu-link descargar" id="btn-descargar" type="button">
+    <img src="/iconos/icono-192.png" alt="" width="34" height="34">
+    <span>Descargar la app<small id="descargar-sub">Instálala en tu teléfono, gratis</small></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+  </button>
+  <div class="como-instalar" id="como-instalar" hidden></div>
 </aside>
 
 <div class="app">
@@ -355,18 +375,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
     <div class="marca">
-      <!-- Logo: pelota de béisbol con barras de análisis -->
-      <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <circle cx="16" cy="16" r="13"/>
-        <path d="M9 5.5c3 3.5 3 17.5 0 21M23 5.5c-3 3.5-3 17.5 0 21" stroke-width="1.6"/>
-        <path d="M12.5 21v-3M16 21v-6M19.5 21v-9" stroke-width="2.6"/>
-      </svg>
+      <img class="logo-app" src="/iconos/icono.svg" alt="" width="34" height="34">
       <b>Baseball Analytics</b>
     </div>
     <span class="btn-ic" aria-hidden="true" style="visibility:hidden"></span>
   </header>
   <p class="lema" id="lema">Pelota invernal <i>·</i> LIDOM</p>
-  <p class="aviso-prueba">Vista de prueba · los juegos y números son de ejemplo</p>
+  <p class="aviso-prueba" id="actualizado">Cargando los juegos…</p>
 
   <nav class="tabs" id="tabs" role="tablist">
     <button class="tab activo" data-vista="portada">Portada</button>
@@ -457,102 +472,151 @@
   // Equipo de país: se muestra la bandera y el código (como en el modelo)
   const pais = (codigo, bandera) => ({ nombre: codigo, bandera: BANDERAS[bandera || codigo] });
 
-  // ===== TORNEOS (menú ☰). Datos de EJEMPLO, luego los traerá el robot =====
-  // juegoHoy: juego en vivo (null = no hay). anteriores: tarjetas con C/H/E (null = se usan los últimos resultados).
-  // posiciones: [equipo, G, P] (null = se calculan solas con los resultados).
-  // calendario: [fecha, visitante, casa, hora]. resultados: [fecha, visitante, carreras visitante, carreras casa, casa] (null = PP).
-  const TORNEOS = {
-    invernal: {
-      nombre:'Pelota Invernal', sub:'LIDOM · República Dominicana', lema:'Pelota invernal <i>·</i> LIDOM',
-      equipos: {
-        // Equipos LIDOM: círculos con iniciales y colores propios (no son los logos oficiales)
-        TL: { nombre:'Tigres',    c1:'#2e78ff', c2:'#0b2a6e', animal:'tigre', img:'escudos/tigres.webp' },  // imagen del dueño
-        GC: { nombre:'Gigantes',  c1:'#b03a52', c2:'#3a0d16', animal:'caballo', img:'escudos/gigantes.webp' },  // imagen del dueño
-        TE: { nombre:'Toros',     c1:'#ff9a2e', c2:'#b84400', animal:'toro', osc:'#7a2c00', img:'escudos/toros.webp' },  // imagen del dueño
-        EO: { nombre:'Estrellas', c1:'#22c86a', c2:'#0b4d27', animal:'elefante', img:'escudos/estrellas.webp' },  // imagen del dueño
-        AC: { nombre:'Águilas',   c1:'#ffd21f', c2:'#a87b00', animal:'aguila', osc:'#6b4c00', img:'escudos/aguilas.webp' },  // imagen del dueño
-        LE: { nombre:'Leones',    c1:'#ff3a4a', c2:'#7a0d16', animal:'leon', img:'escudos/leones.webp' },  // imagen del dueño
-      },
-      // "alBate": 'v' = visitante, 'c' = casa. "bases": [1ra, 2da, 3ra]
-      juegoHoy: {
-        entrada:'Baja 7ma', alBate:'c',
-        v:{ eq:'TE', c:2, h:6, e:2 }, casa:{ eq:'GC', c:5, h:8, e:1 },
-        bolas:1, strikes:2, outs:2, bases:[true,false,true],
-        bateador:'Jake Holton', lanzador:'Phillips Valdez',
-        ultima:'Noelvi Marte · Out: elevado al jardinero derecho', nota:'Cambio de lanzador',
-      },
-      anteriores: [
-        { estado:'Final', fecha:'21 oct 2026', v:{ eq:'TL', c:3, h:5, e:0 }, casa:{ eq:'TE', c:0, h:0, e:2 },
-          ganador:'Alexander Cornielle', perdedor:'Bryce Conley', salvamento:'Jean Carlos Mejía' },
-        { estado:'Pospuesto', fecha:'21 oct 2026, 7:15 p. m.', v:{ eq:'EO', c:0, h:1, e:0 }, casa:{ eq:'AC', c:0, h:0, e:0 },
-          motivo:'Por lluvias' },
-        { estado:'Final', fecha:'21 oct 2026', v:{ eq:'GC', c:14, h:11, e:3 }, casa:{ eq:'LE', c:9, h:11, e:2 },
-          ganador:'H. Robles', perdedor:'Ivan Armstrong' },
-      ],
-      posiciones: [['TL',4,1],['GC',3,2],['TE',3,2],['EO',2,2],['AC',1,3],['LE',1,4]],
-      calendario: [
-        ['22 oct 2026','TE','GC','7:00 p. m.'],
-        ['23 oct 2026','AC','LE','7:15 p. m.'], ['23 oct 2026','TL','EO','7:30 p. m.'],
-        ['24 oct 2026','TE','LE','4:00 p. m.'], ['24 oct 2026','TL','AC','6:00 p. m.'], ['24 oct 2026','GC','EO','7:30 p. m.'],
-        ['25 oct 2026','EO','GC','5:00 p. m.'], ['25 oct 2026','LE','TE','5:00 p. m.'], ['25 oct 2026','AC','TL','5:00 p. m.'],
-        ['27 oct 2026','LE','GC','7:00 p. m.'], ['27 oct 2026','TE','TL','7:30 p. m.'], ['27 oct 2026','AC','EO','7:30 p. m.'],
-        ['28 oct 2026','LE','AC','7:30 p. m.'], ['28 oct 2026','GC','TE','7:30 p. m.'], ['28 oct 2026','EO','TL','7:30 p. m.'],
-      ],
-      resultados: [
-        ['21 oct 2026','TL',3,0,'TE'], ['21 oct 2026','GC',14,9,'LE'], ['21 oct 2026','EO',null,null,'AC'],
-        ['20 oct 2026','AC',4,7,'TE'], ['20 oct 2026','EO',3,5,'LE'], ['20 oct 2026','TL',14,1,'GC'],
-        ['18 oct 2026','LE',4,5,'TL'], ['18 oct 2026','GC',1,4,'AC'], ['18 oct 2026','TE',6,4,'EO'],
-        ['17 oct 2026','LE',3,8,'EO'], ['17 oct 2026','TE',5,3,'AC'], ['17 oct 2026','GC',7,1,'TL'],
-        ['16 oct 2026','EO',11,0,'TE'], ['16 oct 2026','TL',12,2,'LE'], ['16 oct 2026','AC',1,4,'GC'],
-      ],
-    },
-
-    caribe: {
-      nombre:'Serie del Caribe', sub:'Campeones de cada país', lema:'Serie del Caribe <i>·</i> 2026',
-      equipos: { MEX:pais('MEX'), MXV:pais('MXV','MEX'), PUR:pais('PUR'), DOM:pais('DOM'), PAN:pais('PAN') },
-      juegoHoy:null, anteriores:null, posiciones:null, calendario:[],
-      resultados: [
-        ['07 feb 2026','MXV',11,12,'MEX'],
-        ['06 feb 2026','PUR',6,8,'MEX'], ['06 feb 2026','MXV',9,4,'DOM'],
-        ['05 feb 2026','DOM',7,10,'MXV'], ['05 feb 2026','PUR',8,3,'PAN'],
-        ['04 feb 2026','MXV',2,4,'MEX'], ['04 feb 2026','PAN',15,16,'DOM'],
-        ['03 feb 2026','MEX',3,0,'PUR'], ['03 feb 2026','PAN',1,2,'MXV'],
-        ['02 feb 2026','MEX',11,4,'PAN'], ['02 feb 2026','PUR',3,5,'DOM'],
-        ['01 feb 2026','DOM',5,4,'MEX'], ['01 feb 2026','MXV',4,5,'PUR'],
-      ],
-    },
-
-    clasico: {
-      nombre:'Clásico Mundial', sub:'Selecciones nacionales', lema:'Clásico Mundial <i>·</i> 2026',
-      equipos: { CA:pais('CA'), ISR:pais('ISR'), VEN:pais('VEN'), EEUU:pais('EEUU'), ITA:pais('ITA'), DOM:pais('DOM'), JP:pais('JP'),
-                 PUR:pais('PUR'), KOR:pais('KOR'), MEX:pais('MEX'), NL:pais('NL'), PAN:pais('PAN'), NIC:pais('NIC') },
-      juegoHoy:null, anteriores:null, posiciones:null, calendario:[],
-      resultados: [
-        ['28 sept 2026','CA',6,2,'ISR'],
-        ['17 mar 2026','VEN',3,2,'EEUU'],
-        ['16 mar 2026','VEN',4,2,'ITA'],
-        ['15 mar 2026','EEUU',2,1,'DOM'],
-        ['14 mar 2026','VEN',8,5,'JP'], ['14 mar 2026','PUR',6,8,'ITA'],
-        ['13 mar 2026','EEUU',5,3,'CA'], ['13 mar 2026','KOR',0,10,'DOM'],
-        ['11 mar 2026','DOM',7,5,'VEN'],
-        ['09 mar 2026','MEX',3,5,'EEUU'], ['09 mar 2026','DOM',10,1,'ISR'],
-        ['08 mar 2026','NL',1,12,'DOM'],
-        ['07 mar 2026','ISR',3,11,'VEN'], ['07 mar 2026','PAN',3,4,'PUR'],
-      ],
-    },
+  // ===== TORNEOS (menú ☰) =====
+  // Los DATOS (juegos, en vivo, posiciones) vienen de la base de Supabase, donde los guarda el robot.
+  // Aquí solo va lo visual de cada equipo: colores, imagen y animal de reserva.
+  const VISUAL_LIDOM = {
+    TL: { nombre:'Tigres',    c1:'#2e78ff', c2:'#0b2a6e', animal:'tigre', img:'escudos/tigres.webp' },
+    GC: { nombre:'Gigantes',  c1:'#b03a52', c2:'#3a0d16', animal:'caballo', img:'escudos/gigantes.webp' },
+    TE: { nombre:'Toros',     c1:'#ff9a2e', c2:'#b84400', animal:'toro', osc:'#7a2c00', img:'escudos/toros.webp' },
+    EO: { nombre:'Estrellas', c1:'#22c86a', c2:'#0b4d27', animal:'elefante', img:'escudos/estrellas.webp' },
+    AC: { nombre:'Águilas',   c1:'#ffd21f', c2:'#a87b00', animal:'aguila', osc:'#6b4c00', img:'escudos/aguilas.webp' },
+    LE: { nombre:'Leones',    c1:'#ff3a4a', c2:'#7a0d16', animal:'leon', img:'escudos/leones.webp' },
   };
+  const torneoVacio = (nombre, sub, lema, equipos) => ({ nombre, sub, lema, equipos: equipos || {},
+    juegoHoy:null, hoy:[], anteriores:null, posiciones:null, calendario:[], resultados:[] });
+  const TORNEOS = {
+    invernal: torneoVacio('Pelota Invernal', 'LIDOM · República Dominicana', 'Pelota invernal <i>·</i> LIDOM', { ...VISUAL_LIDOM }),
+    caribe:   torneoVacio('Serie del Caribe', 'Campeones de cada país', 'Serie del Caribe'),
+    clasico:  torneoVacio('Clásico Mundial', 'Selecciones nacionales', 'Clásico Mundial'),
+  };
+
+  // ===== Conexión con la base (solo LEER, con la clave pública) =====
+  const SUPA_URL = 'https://fehvnwwzdygjsxsjzxlu.supabase.co';
+  const SUPA_CLAVE_PUBLICA = 'sb_publishable_JyMV71aNo6krcED46eVIjQ_NWXx1vX_'; // pública: solo deja leer
+  async function leerTabla(tabla, consulta){
+    const r = await fetch(`${SUPA_URL}/rest/v1/${tabla}?${consulta}`, { headers: { apikey: SUPA_CLAVE_PUBLICA }, cache: 'no-store' });
+    if (!r.ok) throw new Error(tabla + ' ' + r.status);
+    return r.json();
+  }
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sept','oct','nov','dic'];
+  const fechaTexto = (f) => { const [y, m, d] = String(f).split('-'); return `${parseInt(d, 10)} ${MESES[parseInt(m, 10) - 1]} ${y}`; };
+  const horaTexto = (h) => {
+    if (!h) return 'Por confirmar';
+    let [hh, mm] = String(h).split(':').map(Number);
+    if (hh < 10) return 'Por confirmar';               // la fuente pone 5:00 a. m. cuando aún no hay hora
+    const pm = hh >= 12; hh = hh % 12 || 12;
+    return `${hh}:${String(mm).padStart(2, '0')} ${pm ? 'p. m.' : 'a. m.'}`;
+  };
+  const hoyRD = () => new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+  const inicioJuego = (g) => { const [y, m, d] = g.fecha.split('-').map(Number); const [hh, mm] = String(g.hora || '12:00').split(':').map(Number); return Date.UTC(y, m - 1, d, hh, mm) + 4 * 3600 * 1000; };
+
+  // Convierte lo que viene de la base al formato que usa la página
+  function armarTorneos(datos){
+    const { equipos, juegos, vivos, posiciones, torneos } = datos;
+    const vivoDe = new Map(vivos.map((v) => [v.juego_id, v]));
+    const hoy = hoyRD();
+    for (const [id, T] of Object.entries(TORNEOS)) {
+      const info = torneos.find((t) => t.id === id);
+      if (info && info.lema) T.lema = info.lema.replace(' · ', ' <i>·</i> ');
+      // Equipos: lo visual de aquí + los que traiga la base
+      for (const e of equipos.filter((x) => x.torneo_id === id)) {
+        if (!T.equipos[e.codigo]) {
+          T.equipos[e.codigo] = id === 'invernal'
+            ? { nombre: e.nombre, c1: e.color1 || '#456', c2: e.color2 || '#123' }
+            : { nombre: e.codigo, bandera: BANDERAS[e.bandera || e.codigo], c1: BANDERAS[e.bandera || e.codigo] ? undefined : '#456', c2: '#123' };
+        }
+      }
+      const propios = juegos.filter((g) => g.torneo_id === id);
+      const lado = (g, quien) => ({ eq: quien === 'v' ? g.visitante : g.casa,
+        c: (quien === 'v' ? g.carreras_visitante : g.carreras_casa) ?? 0,
+        h: (quien === 'v' ? g.hits_visitante : g.hits_casa) ?? 0,
+        e: (quien === 'v' ? g.errores_visitante : g.errores_casa) ?? 0 });
+      // Juego en vivo
+      const enVivo = propios.filter((g) => g.estado === 'en_vivo').sort((a, b) => inicioJuego(a) - inicioJuego(b));
+      T.juegoHoy = enVivo.length ? (() => {
+        const g = enVivo[0], v = vivoDe.get(g.id) || {};
+        return { id: g.id, entrada: v.entrada || g.entrada_texto || 'En juego', alBate: v.al_bate === 'casa' ? 'c' : 'v',
+          v: lado(g, 'v'), casa: lado(g, 'c'),
+          bolas: v.bolas || 0, strikes: v.strikes || 0, outs: v.outs || 0,
+          bases: [!!v.primera, !!v.segunda, !!v.tercera],
+          bateador: v.bateador || '—', lanzador: v.lanzador || (v.al_bate === 'casa' ? g.lanzador_visitante : g.lanzador_casa) || '—',
+          ultima: v.ultima_jugada || '—', nota: v.nota || null, otros: enVivo.length - 1 };
+      })() : null;
+      // Juegos de hoy que todavía no empiezan
+      T.hoy = propios.filter((g) => g.fecha === hoy && g.estado === 'programado').sort((a, b) => inicioJuego(a) - inicioJuego(b))
+        .map((g) => [fechaTexto(g.fecha), g.visitante, g.casa, horaTexto(g.hora)]);
+      // Terminados y pospuestos (lo más nuevo primero)
+      const hechos = propios.filter((g) => ['final', 'pospuesto', 'suspendido'].includes(g.estado))
+        .sort((a, b) => inicioJuego(b) - inicioJuego(a));
+      T.anteriores = hechos.slice(0, 3).map((g) => g.estado === 'final'
+        ? { estado: 'Final', fecha: fechaTexto(g.fecha), v: lado(g, 'v'), casa: lado(g, 'c'), ganador: g.ganador || '—', perdedor: g.perdedor || '—', salvamento: g.salvamento, mitad: [g.carreras_mitad_visitante, g.carreras_mitad_casa] }
+        : { estado: g.estado === 'pospuesto' ? 'Pospuesto' : 'Suspendido', fecha: `${fechaTexto(g.fecha)}, ${horaTexto(g.hora)}`, v: lado(g, 'v'), casa: lado(g, 'c'), motivo: g.motivo });
+      if (!T.anteriores.length) T.anteriores = null;
+      T.resultados = hechos.slice(0, 45).map((g) => [fechaTexto(g.fecha), g.visitante,
+        g.estado === 'final' ? g.carreras_visitante : null, g.estado === 'final' ? g.carreras_casa : null, g.casa]);
+      T.calendario = propios.filter((g) => g.estado === 'programado' && g.fecha >= hoy).sort((a, b) => inicioJuego(a) - inicioJuego(b))
+        .slice(0, 30).map((g) => [fechaTexto(g.fecha), g.visitante, g.casa, horaTexto(g.hora)]);
+      const pos = posiciones.filter((x) => x.torneo_id === id).map((x) => [x.equipo, x.ganados, x.perdidos]);
+      T.posiciones = pos.length ? pos : null;
+    }
+  }
+
+  // Lee todo de la base. Lo último que llegó se guarda en el teléfono para abrir al instante la próxima vez.
+  let ultimaCarga = 0, cargando = false;
+  async function cargarDatos(){
+    if (cargando) return; cargando = true;
+    try {
+      const [torneos, equipos, juegos, vivos, posiciones] = await Promise.all([
+        leerTabla('torneos', 'select=id,lema,activo'),
+        leerTabla('equipos', 'select=torneo_id,codigo,nombre,bandera,color1,color2'),
+        leerTabla('juegos', 'select=*&order=fecha.desc,hora.desc&limit=500'),
+        leerTabla('juego_en_vivo', 'select=*'),
+        leerTabla('posiciones', 'select=torneo_id,equipo,ganados,perdidos'),
+      ]);
+      const datos = { torneos, equipos, juegos, vivos, posiciones, hora: Date.now() };
+      try { localStorage.setItem('ba-datos', JSON.stringify(datos)); } catch (e) {}
+      usarDatos(datos, false);
+    } catch (e) {
+      $('actualizado').textContent = 'Sin conexión · mostrando lo último guardado';
+    } finally { cargando = false; programarSiguiente(); }
+  }
+  // Hora de reloj en RD: "7:15 p. m."
+  const horaReloj = (ms) => { const [hh, mm] = new Date(ms - 4 * 3600 * 1000).toISOString().slice(11, 16).split(':').map(Number);
+    return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh >= 12 ? 'p. m.' : 'a. m.'}`; };
+  let ultimosDatos = null;
+  function usarDatos(datos, guardados){
+    ultimosDatos = datos;
+    armarTorneos(datos);
+    ultimaCarga = datos.hora;
+    $('actualizado').textContent = (guardados ? 'Lo último guardado, de las ' : 'Actualizado a las ') + horaReloj(datos.hora);
+    ponerTorneo(idActual);
+  }
+  // Cada cuánto se vuelve a leer: 30 s si hay juego en vivo, 1 min si hay juego en su horario, si no 5 min
+  let reloj = null;
+  function programarSiguiente(){
+    clearTimeout(reloj);
+    const ahora = Date.now();
+    const todos = Object.values(TORNEOS);
+    const hayVivo = todos.some((t) => t.juegoHoy);
+    const cerca = !!(ultimosDatos && ultimosDatos.juegos.some((g) => g.estado === 'programado' && ahora > inicioJuego(g) - 20 * 60000 && ahora < inicioJuego(g) + 6 * 3600000));
+    reloj = setTimeout(cargarDatos, hayVivo ? 30000 : cerca ? 60000 : 300000);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - ultimaCarga > 20000) cargarDatos(); });
+
   let T = TORNEOS.invernal, EQUIPOS = T.equipos;
 
   // ===== Dibujo =====
   const $ = (id) => document.getElementById(id);
-  const escudo = (k) => { const t = EQUIPOS[k];
+  const equipoDe = (k) => EQUIPOS[k] || (EQUIPOS[k] = { nombre: k, c1: '#456', c2: '#123' });
+  const escudo = (k) => { const t = equipoDe(k);
     if(t.bandera) return `<span class="escudo bandera" style="background:${t.bandera}" aria-hidden="true"></span>`;
     if(t.img) return `<span class="escudo foto" style="--e1:${t.c1}; --e2:${t.c2}" aria-hidden="true"><img src="${t.img}" alt="" loading="lazy"></span>`;
     if(t.animal) return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:${t.osc || t.c2}" aria-hidden="true"><svg viewBox="0 0 64 64">${ANIMALES[t.animal]}</svg></span>`;
     return `<span class="escudo" style="--e1:${t.c1}; --e2:${t.c2}; color:#fff; font:800 .62rem 'Exo 2', sans-serif">${k}</span>`; };
   const eq = (k, conNombre=true, der=false) => der
-    ? `<div class="eq der"><span>${conNombre ? EQUIPOS[k].nombre : k}</span>${escudo(k)}</div>`
-    : `<div class="eq">${escudo(k)}<span>${conNombre ? EQUIPOS[k].nombre : k}</span></div>`;
+    ? `<div class="eq der"><span>${conNombre ? equipoDe(k).nombre : k}</span>${escudo(k)}</div>`
+    : `<div class="eq">${escudo(k)}<span>${conNombre ? equipoDe(k).nombre : k}</span></div>`;
   const icoBate = `<svg class="al-bate" viewBox="0 0 24 24" fill="currentColor" aria-label="al bate"><path d="M20.5 2.5c1 1 .6 2.4-.4 3.4l-9 9-2.6-2.6 9-9c1-1 2-1.8 3-.8z"/><path d="M7.6 13.4l2.6 2.6-1.2 1.2-2.6-2.6zM5.6 15.6l2.4 2.4-2.6 2.6c-.7.7-1.7.7-2.4 0s-.7-1.7 0-2.4z"/><circle cx="18" cy="18" r="2.6"/></svg>`;
   const vacio = (titulo, texto) => `<div class="tarjeta vacio"><b>${titulo}</b>${texto}</div>`;
 
@@ -560,7 +624,7 @@
     const fila = (lado, quien) => {
       const d = j[lado], otro = j[lado === 'v' ? 'casa' : 'v'];
       const pierde = d.c < otro.c ? 'pierde' : '';
-      return `<tr class="${pierde}"><td><div class="eq">${escudo(d.eq)}<span>${EQUIPOS[d.eq].nombre}</span>${alBate === quien ? icoBate : ''}</div></td>
+      return `<tr class="${pierde}"><td><div class="eq">${escudo(d.eq)}<span>${equipoDe(d.eq).nombre}</span>${alBate === quien ? icoBate : ''}</div></td>
         <td class="c">${bolaEquipo(d.eq, d.c, !!pierde)}</td><td>${d.h}</td><td>${d.e}</td></tr>`;
     };
     return `<table class="marcador"><tr><th></th><th>C</th><th>H</th><th>E</th></tr>${fila('v','v')}${fila('casa','c')}</table>`;
@@ -718,7 +782,7 @@
   function tablero(j){
     const fila = (lado, quien) => {
       const d = j[lado];
-      return `<tr><td><div class="tab-eq">${escudo(d.eq)}<span>${EQUIPOS[d.eq].nombre}</span>${j.alBate === quien ? '<i class="bateando" title="batea"></i>' : ''}</div></td>
+      return `<tr><td><div class="tab-eq">${escudo(d.eq)}<span>${equipoDe(d.eq).nombre}</span>${j.alBate === quien ? '<i class="bateando" title="batea"></i>' : ''}</div></td>
         <td class="c">${d.c}</td><td>${d.h}</td><td>${d.e}</td></tr>`;
     };
     const leds = (n, total, cls) => Array.from({ length: total }, (_, i) => `<i class="led ${i < n ? cls : ''}"></i>`).join('');
@@ -765,7 +829,11 @@
     const j = T.juegoHoy;
     $('vivo').style.display = j ? '' : 'none';
     if(!j){
-      $('juego-hoy').innerHTML = vacio('No hay juego en vivo', T.calendario.length ? 'Mira los próximos juegos en Calendario.' : 'Este torneo ya terminó. Mira los resultados abajo.');
+      $('juego-hoy').innerHTML = T.hoy.length
+        ? `<div class="tarjeta"><div class="estado"><b>Hoy</b><span>Todavía no empiezan</span></div>` +
+          T.hoy.map(([, v, c, hora]) => `<div class="juego">${eq(v)}<div class="medio"><span class="hora">${hora}</span><small>vs</small></div>${eq(c, true, true)}</div>`).join('') +
+          `<div class="detalle" style="margin-top:8px; text-align:center">Cuando empiece el juego, aquí lo verás en vivo.</div></div>`
+        : vacio('No hay juego en vivo', T.calendario.length ? 'Mira los próximos juegos en Calendario.' : 'Este torneo no tiene juegos ahora. Mira los resultados abajo.');
     } else {
       const alBate = j.alBate === 'v' ? j.v.eq : j.casa.eq;
       $('juego-hoy').innerHTML = `
@@ -796,7 +864,7 @@
         const pp = a.estado !== 'Final';
         const det = pp
           ? `<span class="nota-juego">${a.motivo || ''}</span>`
-          : `<b>Ganador:</b> ${a.ganador}<br><b>Perdedor:</b> ${a.perdedor}${a.salvamento ? `<br><b>Salvamento:</b> ${a.salvamento}` : ''}`;
+          : `<b>Ganador:</b> ${a.ganador}<br><b>Perdedor:</b> ${a.perdedor}${a.salvamento ? `<br><b>Salvamento:</b> ${a.salvamento}` : ''}${a.mitad && a.mitad[0] != null ? `<br><b>En 5 entradas:</b> ${a.mitad[0]} - ${a.mitad[1]}` : ''}`;
         return `<div class="tarjeta">
           <div class="estado"><b class="${pp?'pp':''}">${a.estado}</b><span>${a.fecha}</span></div>
           ${marcador(a)}
@@ -866,8 +934,10 @@
       <span class="ico">${ICO_TORNEO}</span>
       <span>${t.nombre}<small>${t.sub}</small></span>${ICO_CHECK}
     </button>`).join('');
+  let idActual = 'invernal';
   function ponerTorneo(id){
     if(!TORNEOS[id]) id = 'invernal';
+    idActual = id;
     T = TORNEOS[id]; EQUIPOS = T.equipos;
     $('lema').innerHTML = T.lema;
     document.querySelectorAll('.torneo').forEach(b => b.classList.toggle('activo', b.dataset.torneo === id));
@@ -921,13 +991,36 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  // ===== Descargar la app (PWA) =====
+  let pedidoInstalar = null;
+  const yaInstalada = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); pedidoInstalar = e; });
+  window.addEventListener('appinstalled', () => { pedidoInstalar = null; $('descargar-sub').textContent = '¡Instalada! Búscala en tu pantalla de inicio'; });
+  if (yaInstalada()) $('descargar-sub').textContent = 'Ya la tienes instalada ✔';
+  $('btn-descargar').addEventListener('click', async () => {
+    const caja = $('como-instalar');
+    if (yaInstalada()) { caja.hidden = false; caja.innerHTML = '<b>Ya la tienes instalada.</b> La abres desde el ícono de Baseball Analytics en tu pantalla de inicio.'; return; }
+    if (pedidoInstalar) {              // Android / Chrome: sale la ventanita de instalar
+      pedidoInstalar.prompt();
+      try { await pedidoInstalar.userChoice; } catch (e) {}
+      pedidoInstalar = null; return;
+    }
+    const iphone = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    caja.hidden = !caja.hidden;
+    caja.innerHTML = iphone
+      ? '<b>En iPhone (Safari):</b><br>1. Toca el botón <b>Compartir</b> (el cuadrito con la flecha hacia arriba).<br>2. Toca <b>«Agregar a inicio»</b>.<br>3. Toca <b>Agregar</b>. Listo: queda el ícono en tu pantalla.'
+      : '<b>En Android (Chrome):</b><br>1. Toca los <b>tres puntitos ⋮</b> de arriba a la derecha.<br>2. Toca <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.<br>3. Toca <b>Instalar</b>. Listo: queda el ícono en tu pantalla.';
+  });
+
   // Caché: la página abre al instante desde lo guardado; el juego en vivo siempre se busca primero en internet (ver sw.js)
   if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
 
   let torneoGuardado = 'invernal'; try{ torneoGuardado = localStorage.getItem('ba-torneo') || 'invernal'; }catch(e){}
-  ponerTorneo(torneoGuardado);
+  idActual = TORNEOS[torneoGuardado] ? torneoGuardado : 'invernal';
+  try { const g = JSON.parse(localStorage.getItem('ba-datos') || 'null'); if (g) usarDatos(g, true); else ponerTorneo(idActual); } catch (e) { ponerTorneo(idActual); }
+  cargarDatos();
 </script>
 </body>
 </html>

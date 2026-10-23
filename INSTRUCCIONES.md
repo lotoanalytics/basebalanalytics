@@ -34,8 +34,14 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
   - El que gana: aro blanco y brillo. El que pierde: su mismo color, sin aro ni brillo.
   - En los equipos claros (amarillo, naranja) el número va oscuro.
   - Los países, que no tienen color propio, usan la bola del color del tema.
-- Cabecera: botón ☰ (abre el menú), logo de pelota con barras + "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
-- Aviso amarillo: "Vista de prueba · los juegos y números son de ejemplo".
+- Cabecera: botón ☰ (abre el menú), el **logo de la app** (`iconos/icono.svg`) y "Baseball Analytics". Lema: "Pelota invernal · LIDOM".
+- **Datos REALES desde el 23-oct-2026**: la página lee la base de Supabase con la clave PÚBLICA (`sb_publishable_JyMV71aNo6krcED46eVIjQ_NWXx1vX_`, solo deja leer) por `fetch` a `/rest/v1/`: torneos, equipos, juegos, juego_en_vivo y posiciones (función `cargarDatos` → `armarTorneos`).
+  - **Se vuelve a leer sola:** cada 30 s si hay juego en vivo, cada 1 min si hay un juego en su horario, y si no, cada 5 min. También al volver a la pestaña.
+  - Lo último que llegó se guarda en el teléfono (`localStorage`, clave `ba-datos`) para abrir al instante. Debajo del lema dice "Actualizado a las …".
+  - Si no hay juego en vivo, la portada muestra los **juegos de hoy** que todavía no empiezan.
+  - Las horas antes de las 10 a. m. salen como "Por confirmar".
+  - En las tarjetas de resultados sale "En 5 entradas: x - y".
+  - Ya **no hay datos de ejemplo**: el aviso amarillo de "vista de prueba" se quitó.
 - 4 pestañas arriba (como la app Pelota Invernal que el dueño mostró de modelo):
   1. **Portada**: "Juego de hoy" EN VIVO (entrada, marcador C/H/E, quién está al bate, bases en diamante, bolas/strikes/outs, al bate, lanzador, última jugada, nota) y "Resultados anteriores" (Final o Pospuesto, marcador C/H/E, ganador, perdedor, salvamento, motivo).
      - **Diamante de bases en 3D acostado** (23-oct, función `diamante3D`): terreno en perspectiva con las 4 almohadillas con grosor. En cada base ocupada hay un **peloterito** (función `peloterito`) con gorra y camiseta del **color del equipo que está al bate** (`color1`/`color2` del equipo) y la almohadilla se pinta de ese color. En home siempre está el bateador con su bate. Datos: `bases:[primera, segunda, tercera]` y `alBate`.
@@ -71,13 +77,27 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - Archivo **`sw.js`** (service worker): 
   - Todo (página, fondo, escudos, letras) → sale de la caché al instante y se actualiza por detrás. Los cambios nuevos se ven la siguiente vez que se abre.
   - En vivo / juegos de hoy → **internet primero** (espera máx. 5 s) y si no hay, lo último guardado. Se reconoce por ir a `*.supabase.co` o a `/api/`. Cuando se conecte la base, los datos del en vivo deben pedirse a Supabase para que sigan esta regla.
-  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v6`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
+  - Si se cambia una imagen **sin cambiarle el nombre**, hay que subir `VERSION` en `sw.js` (ahora `ba-v7`). Si se agrega una imagen nueva, ponerla en la lista `BASE`.
 - **`vercel.json`**: `sw.js` sin caché; imágenes de `fondo/` y `escudos/` con caché de 30 días.
 - Probado: después de la primera visita, la página abre completa **sin internet**.
 - Nota: el error `ERR_CONNECTION_TIMED_OUT` del 23-oct es de conexión al servidor `*.vercel.app` (antes de bajar nada). La caché lo resuelve desde la 2.ª visita; si la primera visita sigue fallando con frecuencia, considerar un dominio propio.
 
+## App descargable (PWA), desde el 23-oct-2026
+- **Logo propio** (`iconos/`), hecho por Claude: una pelota de béisbol blanca con costuras rojas, tres barras verdes neón que suben, una flecha dorada que sale por arriba y un aro de luz celeste, todo sobre un fondo azul.
+  - `icono.svg`: el original.
+  - `icono-192.png` y `icono-512.png`.
+  - `icono-mascara-512.png`: para Android, con el dibujo al 80 %.
+  - `apple-touch-icon.png` (iPhone) y `favicon-32.png`.
+  - `logo-completo.png`: el ícono con las letras "BASEBALL ANALYTICS · PELOTA · DATOS · EN VIVO".
+- **`manifest.webmanifest`:** nombre "Baseball Analytics", nombre corto "Baseball A.", pantalla completa (standalone), en vertical, colores `#0a1650` / `#0b1f8a`, y abre en `/?app=1`.
+- **Botón "Descargar la app"** en el menú:
+  - En Android / Chrome sale la ventanita para instalar (`beforeinstallprompt`).
+  - Si no sale, o en iPhone, muestra los pasos: Compartir → "Agregar a inicio", o ⋮ → "Instalar app".
+  - Si ya está instalada, lo dice.
+- `sw.js` guarda el manifiesto y los íconos. `vercel.json` les da su tipo y su caché.
+
 ## Menú ☰: torneos y colores
-- El ☰ abre un menú lateral. En este orden: **Torneos** (arriba, lo principal), **Colores del diseño** y "Volver a LotoAnalytics".
+- El ☰ abre un menú lateral. En este orden: **Torneos** (arriba, lo principal), **Colores del diseño** y **App → "Descargar la app"**. "Volver a LotoAnalytics" se quitó por pedido del dueño (23-oct).
 - **Torneos** (como en la app Pelota Invernal): **Pelota Invernal** (LIDOM), **Serie del Caribe** y **Clásico Mundial**. Al escoger uno cambian el lema y las 4 pestañas. Se recuerda en el teléfono (`localStorage`, clave `ba-torneo`).
   - Los datos están en el objeto `TORNEOS` del script. Cada torneo tiene: equipos, juegoHoy, anteriores, posiciones, calendario, resultados.
   - Si `posiciones` es null, la tabla se calcula sola con los resultados. Si `juegoHoy` es null, sale "No hay juego en vivo". Si `anteriores` es null, la Portada muestra los 3 últimos resultados. Calendario vacío = "No hay juegos programados".
@@ -143,3 +163,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: puestas las imágenes de Gigantes, Toros y Estrellas: ya los 6 equipos tienen su imagen neón.
 - 23-oct-2026: las bolas del marcador van con el color de cada equipo; el que gana lleva aro blanco y brillo.
 - 23-oct-2026: mini estadio al tocar el juego en vivo (tablero, campo, defensa, corredores, bateador y lanzador con su nombre).
+- 23-oct-2026: la página lee los datos REALES de la base (sin datos de ejemplo), se vuelve una app descargable con logo propio, y el menú tiene "Descargar la app" en vez de "Volver a LotoAnalytics".
