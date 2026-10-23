@@ -151,25 +151,28 @@ MLB publica en JSON los datos de las ligas invernales, **LIDOM incluida**. Lo co
 
 ⚠️ **Sobre el permiso de uso:** tanto la API de MLB como pelotainvernal.com tienen derechos reservados. La API de MLB permite uso personal y no comercial; usarla en una app con anuncios (AdSense) puede ir contra sus términos. Los marcadores en sí son hechos, pero la forma de obtenerlos importa. **Decisión del dueño antes de publicar con anuncios.** (Claude no es abogado.)
 
-## 6. Plan sugerido para el robot (pendiente de aprobar)
+## 6. El robot (hecho el 23-oct-2026)
 
-1. **Fuente:** pelotainvernal.com, con los mismos datos que usa su página:
-   - Calendario y resultados: `POST /liga/<liga>/calendario` y `POST /liga/<liga>/resultados` con `page=1`, que dan JSON.
-   - Posiciones: del HTML de `tabla-de-posiciones`, o calculadas con los juegos.
-   - En vivo: el canal `wss://s.pelotainvernal.com/`.
-   - **Respaldo:** la API de MLB (liga 131).
-2. **Ligas:** `dominicana-lidom`, `serie-del-caribe` y `clasico-mundial-beisbol`.
-3. **Guardar en Supabase:**
-   - `juegos` con `fuente = 'pelotainvernal'` y `fuente_id = id`, así no se duplica.
-   - Para pasar `status` a nuestro estado: 1 → `programado`, 6 → `final`, 7 → `pospuesto`, y los de en vivo → `en_vivo`.
-   - Equipos por `abbreviation`.
-   - `juego_en_vivo` con `roundText`, `battingTeam`, `balls`/`strikes`/`outs`, las bases, `atBat`, `pitcher` y `lastPlayByPlay`.
-   - Ganador, perdedor y salvamento al terminar.
-4. **Cuándo corre:** igual que LotoAnalytics: GitHub Actions con `workflow_dispatch`, disparado desde cron-job.org.
-   - Cada día, una vez, el calendario.
-   - En horario de juegos (6:00 p. m. – 1:00 a. m. RD), cada pocos minutos, o escuchando el canal en vivo.
-5. **Nunca** se guardan los datos de apuestas ni los logos oficiales.
-6. **Avisos** (si se usan): uno por juego y tipo, con `avisos_enviados`.
+- **Archivos:** `robot/robot-beisbol.js` y `.github/workflows/robot-beisbol.yml` ("Robot de béisbol").
+- **De dónde sale:** es una copia adaptada del robot "todo en uno" de LotoAnalytics (`robot/backend-todo-en-uno (1).js`, que solo se leyó). Se copiaron estas ideas:
+  1. **Leer desde la página, no directo del servidor.** Se abre la página en un Chrome sin pantalla, se toma la lista de juegos que la página misma recibe (el POST con `page=1`) y se **comprueba** con lo que se ve en pantalla (nombres y marcador). Si no coincide, no se usa. Así se hace porque Conéctate, la misma empresa, dio números falsos a quien le pedía directo.
+  2. Se bloquean imágenes, letras y estilos para que cargue rápido. Cada página tiene un límite de 30 s y el vigilante corta la corrida a los 3 minutos.
+  3. Un juego `final` nunca se pisa con una lectura "peor", y un juego con `manual = true` nunca se toca.
+  4. Las horas van en hora de RD tal como las da la fuente.
+- **Qué lee en cada corrida, por cada torneo con `activo = true` en la tabla `torneos`:** el calendario, los resultados y las posiciones.
+- **Qué guarda:**
+  - `juegos`: por `fuente_id`, así no se duplica.
+  - `juego_en_vivo`: entrada, al bate, conteo, bateador, lanzador, última jugada, aviso y `base_codigo`.
+  - `posiciones`.
+  - `corridas_robot`: un registro de cada corrida.
+  - Los equipos nuevos que aparezcan se agregan solos.
+- **No guarda nunca** los datos de apuestas ni los logos oficiales.
+- **Modo prueba:** si se corre con `solo_leer = 1`, o si faltan las claves, solo lee y muestra. Lo que dijo queda en la rama `exploracion`, archivo `registro/ultima-corrida.txt`.
+- **Primera prueba, 23-oct-2026:** 0 errores. Leyó 30 juegos del calendario, 16 resultados y la tabla de los 6 equipos; todo coincidió con la pantalla.
+- Algunos juegos del calendario salen a las **5:00 a. m.** (por ejemplo el 1-nov). Parece que la fuente usa esa hora cuando todavía no se sabe la hora real; hay que revisarlo.
+- **Para que guarde de verdad faltan dos cosas:**
+  1. Poner en el repo los secretos `SUPABASE_URL` (`https://fehvnwwzdygjsxsjzxlu.supabase.co`) y `SUPABASE_SERVICE_ROLE_KEY` (la clave secreta del proyecto `baseball-analytics` en Supabase).
+  2. Programar en cron-job.org las llamadas a `workflow_dispatch`: una vez al día en la mañana, y cada 5 minutos de 4:00 p. m. a 1:00 a. m. hora RD.
 
 ## 7. Pendientes
 

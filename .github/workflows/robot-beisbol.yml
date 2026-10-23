@@ -17,10 +17,10 @@ on:
         required: false
         default: "0"
 
-# Nunca dos corridas a la vez: si llega otra, espera a que termine la anterior.
 permissions:
   contents: write
 
+# Nunca dos corridas a la vez: si llega otra, espera a que termine la anterior.
 concurrency:
   group: robot-beisbol
   cancel-in-progress: false
