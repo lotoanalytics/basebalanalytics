@@ -79,6 +79,10 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - El SQL está en el repo, carpeta `supabase/migrations/`.
 - La página **todavía no lee** de la base: sigue con datos de ejemplo dentro del HTML. Falta conectarla y hacer el robot.
 
+## Robot de datos — análisis (23-oct-2026)
+- Ver **`ANALISIS-pelotainvernal.md`** (en el repo y en el proyecto): cómo está hecho pelotainvernal.com, qué significa cada columna (G, P, DIF, PCT, casa/ruta, cara a cara, C/H/E, B/S/O…), fórmulas, y la fuente encontrada: **API de estadísticas de MLB** (LIDOM = `leagueId 131`, `sportId 17`) con juego en vivo (entrada, conteo, bases, bateador, lanzador).
+- Pendiente: el dueño quiere que se revise un documento ("revisar / analizar / conéctate") de su repo de LotoAnalytics; Claude **no tiene acceso** a ese repo (solo a `basebalanalytics` y `Mixsury`). Hay que darle acceso a la app de Claude en GitHub o adjuntar el archivo.
+
 ## Cuentas y límites gratis (revisado 23-oct-2026)
 - **Supabase (plan gratis):** máximo **2 proyectos activos** por persona. Hoy hay 1 (`lotoanalytics's Project`, ref `vrqzpuikwsopjpehusgp`). Desde el 23-oct ya hay 2: el de LotoAnalytics y **`baseball-analytics`** → se usaron los 2 proyectos gratis. Cada proyecto tiene sus **500 MB** de base de datos, pero el tráfico de salida (5 GB/mes), usuarios y almacenamiento se **comparten** entre los dos. Los proyectos gratis se pausan si pasan una semana sin uso.
 - **Vercel (Hobby):** proyectos `lotoanalytics` y `baseball-analytics` en la misma cuenta. Los límites del mes (100 GB de transferencia, 1 millón de peticiones y de funciones) son de la cuenta, no de cada proyecto. Hobby es solo para uso personal **no comercial**: si se pone publicidad (AdSense) se debería pasar a Pro.
@@ -101,3 +105,4 @@ Se llegaría desde el menú ☰ de la app LotoAnalytics. Todavía **no** está c
 - 23-oct-2026: caché con service worker (`sw.js`): todo desde caché, el en vivo siempre de internet primero.
 - 23-oct-2026: fondo quieto y desplazamiento fluido (sin brincos, sin desenfoques).
 - 23-oct-2026: tarjetas de cristal del color del tema y diamante 3D con peloteritos del color del equipo al bate.
+- 23-oct-2026: análisis de pelotainvernal.com y de la API de MLB para el robot (`ANALISIS-pelotainvernal.md`).
