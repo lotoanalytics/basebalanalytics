@@ -1,0 +1,14 @@
+[robot] puppeteer-extra + stealth cargado.
+[robot] Hora RD: 2026-10-24 06:38
+[robot] Plan: invernal: calendario, resultados (juego en su horario: TL-EO 2026-10-23 19:30; juego en su horario: AC-LE 2026-10-23 19:15) | caribe: calendario, posiciones (el calendario se revisó hace más de 12 horas; revisión diaria) | clasico: calendario, posiciones (el calendario se revisó hace más de 12 horas; revisión diaria)
+[robot] invernal · calendario: 30 juego(s) leídos y comprobados.
+[robot] invernal · resultados: 18 juego(s) leídos y comprobados.
+[robot] FINAL: TL 3 - 8 EO (2026-10-23)
+[robot] FINAL: AC 5 - 9 LE (2026-10-23)
+[robot] invernal · portada: 5 juego(s) de hoy/ayer leídos y comprobados.
+[robot] invernal · posiciones: 6 equipo(s) (porque terminó un juego).
+[robot] caribe · calendario: 0 juego(s) leídos y comprobados.
+[robot] caribe · posiciones: 5 equipo(s).
+[robot] clasico · calendario: 0 juego(s) leídos y comprobados.
+[robot] clasico · posiciones: 0 equipo(s).
+[robot] Terminado. Juegos guardados: 53 · Errores: 0
