@@ -237,6 +237,40 @@ async function abrirConReintento(browser, ruta, esperarDatos) {
   }
 }
 
+// La PORTADA de la liga trae incrustadas las listas "todayGames" y "previousGames".
+// Ahí sale el FINAL apenas termina el juego; la página de resultados tarda horas
+// (la noche del 23-oct los finales nunca salieron en resultados, sí en la portada).
+function listaIncrustada(html, clave) {
+  const i = html.indexOf(`"${clave}":[`);
+  if (i < 0) return [];
+  const ini = html.indexOf('[', i);
+  let prof = 0, enTexto = false, escape = false;
+  for (let k = ini; k < html.length; k++) {
+    const c = html[k];
+    if (enTexto) { if (escape) escape = false; else if (c === '\\') escape = true; else if (c === '"') enTexto = false; continue; }
+    if (c === '"') enTexto = true;
+    else if (c === '[') prof++;
+    else if (c === ']' && --prof === 0) {
+      try { const l = JSON.parse(html.slice(ini, k + 1)); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+    }
+  }
+  return [];
+}
+
+async function leerPortada(browser, liga) {
+  const r = await abrirConReintento(browser, `/liga/${liga}`, false);
+  try {
+    const html = (await r.page.content()).replace(/&quot;/g, '"');
+    const vistos = new Map();
+    for (const clave of ['previousGames', 'todayGames']) {
+      for (const j of listaIncrustada(html, clave)) if (j && j.id && j.awayTeam && j.homeTeam) vistos.set(j.id, j);
+    }
+    return { juegos: [...vistos.values()], enPantalla: r.enPantalla };
+  } finally {
+    await r.page.close().catch(() => {});
+  }
+}
+
 // Comprobación: lo recibido tiene que coincidir con lo que se ve en pantalla
 // Los nombres siempre tienen que estar en pantalla. El marcador solo se compara en los juegos
 // FINALES: durante un juego en vivo la página lo muestra de otra forma y cambia a cada rato.
@@ -444,6 +478,27 @@ async function correr(opciones = {}) {
           console.error(`[robot] ${torneoId} · ${seccion}: ${e.message}`);
         } finally {
           if (page) await page.close().catch(() => {});
+        }
+      }
+      // Portada de la liga: ahí sale el FINAL antes que en resultados
+      if (secciones.has('resultados') && quedaTiempo()) {
+        try {
+          const p = await leerPortada(browser, liga);
+          const hoy = fechaRD(Date.now());
+          const ayer = fechaRD(Date.now() - 24 * 3600 * 1000);
+          const recientes = p.juegos.filter((j) => [hoy, ayer].includes(String(j.date || '').slice(0, 10)));
+          // Nombres en pantalla (comprobación igual que en las otras páginas, sin el marcador)
+          const pantalla = texto(p.enPantalla);
+          const buenos = recientes.filter((j) => pantalla.includes(texto(j.awayTeam.name)) && pantalla.includes(texto(j.homeTeam.name)));
+          if (recientes.length && !buenos.length) throw new Error('los juegos de la portada NO coinciden con lo que se ve; no se usan');
+          console.log(`[robot] ${torneoId} · portada: ${buenos.length} juego(s) de hoy/ayer leídos y comprobados.`);
+          for (const j of buenos) {
+            try { if (await guardarJuego(torneoId, j, cuenta)) { huboFinal = true; huboFinalEnAlguno = true; } }
+            catch (e) { cuenta.errores++; cuenta.notas.push(`${torneoId} juego ${j.id}: ${e.message}`); console.error(`[robot] Error guardando juego ${j.id}: ${e.message}`); }
+          }
+        } catch (e) {
+          cuenta.errores++; cuenta.notas.push(`${torneoId} portada: ${e.message}`);
+          console.error(`[robot] ${torneoId} · portada: ${e.message}`);
         }
       }
       // Posiciones: si tocaba, o si algún juego terminó en esta corrida
