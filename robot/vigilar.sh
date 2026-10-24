@@ -7,6 +7,7 @@
 # (hora RD, por defecto 00:00 = medianoche). Resultados y posiciones se
 # buscan cada ~2 minutos o cuando termina un juego.
 # Si el robot se cae o se pega, este archivo lo vuelve a encender solo.
+# Cuando TODOS los juegos del día están en final (o pospuestos), se apaga solo.
 # Para detenerlo antes: GitHub -> Actions -> "Robot vigilante" -> "Cancel workflow".
 # Tope de seguridad: 5 h 40 min (GitHub corta cualquier corrida a las 6 h).
 # =====================================================================
@@ -41,6 +42,11 @@ while [ "$(date +%s)" -lt "$((fin - 30))" ]; do
   git fetch -q origin main 2>/dev/null && git checkout -q origin/main -- robot/robot-beisbol.js 2>/dev/null || true
   echo "===== Encendido #$arranques · $(TZ=America/Santo_Domingo date '+%I:%M %p') hora RD =====" | tee -a registro/vigilante.txt
   node robot/robot-beisbol.js 2>&1 | grep --line-buffered -v "^  (prueba)" | tee -a registro/vigilante.txt
+  codigo=${PIPESTATUS[0]}
+  if [ "$codigo" = "10" ]; then
+    echo "[vigilante] Todos los juegos de hoy terminaron con su resultado final: se apaga solo." | tee -a registro/vigilante.txt
+    exit 0
+  fi
   [ "$(date +%s)" -ge "$((fin - 30))" ] && break
   echo "[vigilante] El robot se detuvo; se vuelve a encender en 10 s." | tee -a registro/vigilante.txt
   sleep 10

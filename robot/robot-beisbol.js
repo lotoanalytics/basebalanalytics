@@ -390,6 +390,7 @@ async function correr(opciones = {}) {
   const { browserCompartido = null, rapida = false } = opciones;
   INICIO_CORRIDA = Date.now();
   const cuenta = { guardados: 0, errores: 0, notas: [] };
+  const vistosHoy = new Set();   // juegos de hoy que vinieron en esta vuelta
   console.log(`[robot] Hora RD: ${fechaRD(Date.now())} ${horaRDtexto(Date.now())}${SOLO_LEER ? ' · MODO PRUEBA (no se guarda nada)' : ''}${FORZAR ? ' · FORZADO' : ''}${rapida ? ' · vuelta rápida (solo el en vivo)' : ''}`);
 
   const plan = await armarPlan();
@@ -433,6 +434,7 @@ async function correr(opciones = {}) {
           const hoy = fechaRD(Date.now());
           const lista = rapida ? r.json.filter((j) => String(j.date || '').slice(0, 10) === hoy) : r.json;
           for (const j of lista) {
+            if (String(j.date || '').slice(0, 10) === hoy) vistosHoy.add(String(j.id));
             try { if (await guardarJuego(torneoId, j, cuenta)) { huboFinal = true; huboFinalEnAlguno = true; } }
             catch (e) { cuenta.errores++; cuenta.notas.push(`${torneoId} juego ${j.id}: ${e.message}`); console.error(`[robot] Error guardando juego ${j.id}: ${e.message}`); }
           }
@@ -478,7 +480,17 @@ async function correr(opciones = {}) {
     }).eq('id', idCorrida);
   }
   console.log(`[robot] Terminado. Juegos guardados: ${cuenta.guardados} · Errores: ${cuenta.errores}`);
-  return { huboFinal: huboFinalEnAlguno, errores: cuenta.errores };
+  // Un juego que estaba EN VIVO y ya no sale en el calendario terminó, pero puede
+  // tardar en salir en resultados: hay que seguir buscándolo en resultados.
+  let faltan = 0;
+  if (!SOLO_LEER) {
+    const { data: vivos } = await supabase.from('juegos').select('fuente_id, visitante, casa')
+      .eq('estado', 'en_vivo').eq('fecha', fechaRD(Date.now()));
+    const perdidos = (vivos || []).filter((g) => !vistosHoy.has(String(g.fuente_id)));
+    faltan = perdidos.length;
+    if (faltan) console.log(`[robot] Ya no sale en el calendario (terminó y se espera su final en resultados): ${perdidos.map((g) => g.visitante + '-' + g.casa).join(', ')}`);
+  }
+  return { huboFinal: huboFinalEnAlguno, errores: cuenta.errores, faltan };
 }
 
 // ---------------------------------------------------------------------
@@ -490,6 +502,13 @@ function finDelVigilante() {
   let fin = momentoRD(hoy, `${String(hh).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
   if (fin <= Date.now()) fin += 24 * 3600 * 1000;           // 00:00 = la medianoche que viene
   return Math.min(fin, Date.now() + 340 * 60 * 1000);        // tope de seguridad: 5 h 40 min
+}
+
+// true si hoy hubo juegos y ninguno queda programado ni en vivo
+async function todoTerminadoHoy() {
+  const { data, error } = await supabase.from('juegos').select('estado').eq('fecha', fechaRD(Date.now()));
+  if (error || !data || !data.length) return false;
+  return data.every((g) => !['programado', 'en_vivo'].includes(g.estado));
 }
 
 async function modoEnVivo() {
@@ -511,8 +530,16 @@ async function modoEnVivo() {
       if (!browser || Date.now() - abiertoDesde > 30 * 60 * 1000) await abrirChrome();
       const completa = pendienteCompleta || vuelta % VUELTAS_COMPLETAS === 1;
       const r = await correr({ browserCompartido: browser, rapida: !completa });
-      pendienteCompleta = !!(r && r.huboFinal); // si terminó un juego, la próxima vuelta trae resultados y posiciones
+      // si terminó un juego (o desapareció del calendario), la próxima vuelta trae resultados y posiciones
+      pendienteCompleta = !!(r && (r.huboFinal || r.faltan));
       if (r && r.nada) console.log('[en vivo] Ningún juego en su horario ahora mismo.');
+      // ¿Ya terminaron todos los juegos de hoy? Entonces se apaga solo.
+      if (!SOLO_LEER && await todoTerminadoHoy()) {
+        console.log('[en vivo] Todos los juegos de hoy están en FINAL (o pospuestos): resultados y posiciones guardados. El vigilante se apaga solo.');
+        clearTimeout(perro);
+        if (browser) { await Promise.race([browser.close().catch(() => {}), esperar(5000)]); try { if (browser.process()) browser.process().kill('SIGKILL'); } catch (e) {} }
+        return 'terminado';
+      }
     } catch (e) {
       console.error('[en vivo] Error en la vuelta ' + vuelta + ': ' + e.message + ' (se sigue con la próxima)');
       try { await abrirChrome(); } catch (e2) {}
@@ -528,7 +555,8 @@ async function modoEnVivo() {
 }
 
 if (MODO_VIVO) {
-  modoEnVivo().then(() => process.exit(0)).catch((e) => { console.error('[en vivo] Error grave:', e.message); process.exit(1); });
+  // Código 10 = todos los juegos de hoy terminaron: vigilar.sh no lo vuelve a encender
+  modoEnVivo().then((r) => process.exit(r === 'terminado' ? 10 : 0)).catch((e) => { console.error('[en vivo] Error grave:', e.message); process.exit(1); });
 } else {
 // VIGILANTE: si la corrida pasa de 3 minutos, se termina sola (lo guardado queda guardado).
 setTimeout(() => {
